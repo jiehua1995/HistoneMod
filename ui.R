@@ -1,65 +1,234 @@
 ui <- fluidPage(
-  
   shinyalert::useShinyalert(force = TRUE),
   
   # Activate the shinyjs
   useShinyjs(),
+  
   tags$head(
-    tags$script(src = "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js")
+    # Tailwind CSS
+    tags$script(src = "https://cdn.tailwindcss.com"),
+    # Confetti effect
+    tags$script(src = "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"),
+    # Custom styles
+    tags$style(HTML("
+      body { background: #f8fafc; font-family: 'Segoe UI', sans-serif; }
+      .plot-container { 
+        position: relative; 
+        background: white; 
+        border-radius: 12px; 
+        padding: 20px; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 24px;
+      }
+      .download-btn {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 10;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+      }
+      .download-btn:hover {
+        background: #2563eb;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+      }
+      .sidebar-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 16px;
+      }
+      .main-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 8px;
+      }
+      .validation-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .tab-content { padding: 24px; }
+      footer { background: white !important; border-top: 1px solid #e2e8f0; }
+    "))
   ),
   tags$div(id = "confetti-container", style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"),
   
-  
-  titlePanel("Histone PTM Quantification"),
+  div(class = "container-fluid px-4 py-4",
+    div(class = "main-title", "Histone PTM Quantification"),
+    div(style = "color: #64748b; font-size: 14px; margin-bottom: 24px;",
+      "Quantitative analysis of histone post-translational modifications"
+    )
+  ),
   
   sidebarLayout(
-    # Sidebar
     sidebarPanel(
-      # MS1 table upload
-      fileInput("ms1_file", label = tagList(
-        "Upload MS1 File",
-        actionLink("ms1_info", label = NULL, icon = icon("question-circle"),
-                   style="background-color: #d3d3d3; border-radius:50%; padding:3px 3px; color:black; margin-left:5px;")
-      ), accept=".csv"),
+      class = "px-3",
+      # Upload section
+      div(class = "sidebar-section",
+        h5(style="font-weight: 600; color: #1e293b; margin-bottom: 16px;", 
+           icon("upload"), " Upload Files"),
+        fileInput("ms1_file", label = tagList(
+          span(style="font-weight: 600; color: #334155; font-size: 14px;", "MS1 File"),
+          actionLink("ms1_info", label = NULL, icon = icon("question-circle"),
+                     style="background-color: #e2e8f0; border-radius:50%; padding:4px 6px; color:#475569; margin-left:8px; font-size:12px;")
+        ), accept=".csv"),
+        fileInput("sample_file", label = tagList(
+          span(style="font-weight: 600; color: #334155; font-size: 14px;", "Sample File"),
+          actionLink("sample_info", label = NULL, icon = icon("question-circle"),
+                     style="background-color: #e2e8f0; border-radius:50%; padding:4px 6px; color:#475569; margin-left:8px; font-size:12px;")
+        ), accept=".csv")
+      ),
       
-      # Sample table upload
-      fileInput("sample_file", label = tagList(
-        "Upload Sample File",
-        actionLink("sample_info", label = NULL, icon = icon("question-circle"),style="background-color: #d3d3d3; border-radius:50%; padding:3px 3px; color:black; margin-left:5px;")
-      ), accept=".csv"),
+      # Selection section
+      div(class = "sidebar-section",
+        h5(style="font-weight: 600; color: #1e293b; margin-bottom: 16px;", 
+           icon("filter"), " Data Selection"),
+        pickerInput("select_peptides", label = tagList(
+          span(style="font-weight: 600; color: #334155; font-size: 14px;", "Peptide Modifications"),
+          actionLink("peptide_info", label = NULL, icon = icon("question-circle"),
+                     style="background-color: #e2e8f0; border-radius:50%; padding:4px 6px; color:#475569; margin-left:8px; font-size:12px;")
+        ), choices=NULL, multiple=TRUE, options=list(`actions-box`=TRUE)),
+        pickerInput("select_samples", label = tagList(
+          span(style="font-weight: 600; color: #334155; font-size: 14px;", "Samples"),
+          actionLink("sample_select_info", label = NULL, icon = icon("question-circle"),
+                     style="background-color: #e2e8f0; border-radius:50%; padding:4px 6px; color:#475569; margin-left:8px; font-size:12px;")
+        ), choices=NULL, multiple=TRUE, options=list(`actions-box`=TRUE))
+      ),
       
-      # Modification selection
-      pickerInput("select_peptides", label = tagList(
-        "Select Peptide Modifications",
-        actionLink("peptide_info", label = NULL, icon = icon("question-circle"),style="background-color: #d3d3d3; border-radius:50%; padding:3px 3px; color:black; margin-left:5px;")
-      ), choices=NULL, multiple=TRUE, options=list(`actions-box`=TRUE)),
+      # Options section
+      div(class = "sidebar-section",
+        h5(style="font-weight: 600; color: #1e293b; margin-bottom: 16px;", 
+           icon("cog"), " Options"),
+        checkboxInput("exclude_un", label = tagList(
+          span(style="font-weight: 600; color: #334155; font-size: 14px;", "Exclude unmodified peptides"),
+          actionLink("exclude_info", label = NULL, icon = icon("question-circle"),
+                     style="background-color: #e2e8f0; border-radius:50%; padding:4px 6px; color:#475569; margin-left:8px; font-size:12px;")
+        ), value = TRUE)
+      ),
       
-      # Sample selection
-      pickerInput("select_samples", label = tagList(
-        "Select Samples",
-        actionLink("sample_select_info", label = NULL, icon = icon("question-circle"),style="background-color: #d3d3d3; border-radius:50%; padding:3px 3px; color:black; margin-left:5px;")
-      ), choices=NULL, multiple=TRUE, options=list(`actions-box`=TRUE)),
-      
-      # Exclude unmodified checkbox
-      checkboxInput("exclude_un", label = tagList(
-        "Exclude unmodified peptides",
-        actionLink("exclude_info", label = NULL, icon = icon("question-circle"),style="background-color: #d3d3d3; border-radius:50%; padding:3px 3px; color:black; margin-left:5px;")
-      ), value = TRUE)
+      # Validation status
+      div(class = "sidebar-section",
+        uiOutput("validation_status")
+      )
     ),
     
+    # Main content area
     mainPanel(
       tabsetPanel(
+        tabPanel("Data Preview",
+                 div(class = "p-3",
+                   uiOutput("preview_content")
+                 )
+        ),
         tabPanel("PCA",
-                 withSpinner(plotOutput("pca_plot", height="600px")),
+                 div(class = "mb-3",
+                   div(class = "row",
+                     div(class = "col-md-6",
+                       checkboxInput("show_ellipse", "Show 95% confidence ellipses", value = TRUE),
+                       div(style="color: #64748b; font-size: 13px; margin-left: 24px; margin-top: -8px;",
+                         icon("info-circle"), " Requires ≥4 samples per group to display ellipses")
+                     ),
+                     div(class = "col-md-6",
+                       selectInput("pca_palette", "Color palette",
+                                   choices = c("Viridis" = "viridis", "Magma" = "magma", 
+                                               "Plasma" = "plasma", "Inferno" = "inferno",
+                                               "Cividis" = "cividis", "Rocket" = "rocket",
+                                               "Mako" = "mako", "Turbo" = "turbo"),
+                                   selected = "viridis")
+                     )
+                   )
+                 ),
+                 div(class = "text-end mb-2",
+                   actionButton("export_pca", "Download Plot", 
+                                icon = icon("download"),
+                                class = "btn btn-primary",
+                                style = "background-color: #3b82f6; border: none;")
+                 ),
+                 div(class = "plot-container",
+                   withSpinner(plotOutput("pca_plot", height="600px"))
+                 )
         ),
         tabPanel("Heatmap",
-                 withSpinner(plotOutput("heatmap_plot", height="600px")),
+                 div(class = "mb-3",
+                   div(class = "row",
+                     div(class = "col-md-4",
+                       checkboxInput("cluster_rows", "Cluster peptides (rows)", value = TRUE)
+                     ),
+                     div(class = "col-md-4",
+                       checkboxInput("cluster_cols", "Cluster samples (columns)", value = TRUE)
+                     ),
+                     div(class = "col-md-4",
+                       selectInput("heatmap_palette", "Color palette",
+                                   choices = c("Viridis" = "viridis", "Magma" = "magma", 
+                                               "Plasma" = "plasma", "Inferno" = "inferno",
+                                               "Cividis" = "cividis", "Rocket" = "rocket",
+                                               "Mako" = "mako", "Turbo" = "turbo"),
+                                   selected = "viridis")
+                     )
+                   )
+                 ),
+                 div(class = "text-end mb-2",
+                   actionButton("export_heatmap", "Download Plot", 
+                                icon = icon("download"),
+                                class = "btn btn-primary",
+                                style = "background-color: #3b82f6; border: none;")
+                 ),
+                 div(class = "plot-container",
+                   withSpinner(plotOutput("heatmap_plot", height="600px"))
+                 )
         ),
         tabPanel("Barplot",
-                 pickerInput("select_protein", "Select Protein", choices=NULL),
-                 checkboxInput("add_signif", "Add significance stars", value=TRUE),
-                 withSpinner(uiOutput("barplot_ui", height="600px"))),
-        tabPanel("Table", DTOutput("data_table")),
+                 div(class = "mb-3",
+                   div(class = "row",
+                     div(class = "col-md-4",
+                       pickerInput("select_protein", "Select Protein", choices=NULL)
+                     ),
+                     div(class = "col-md-4",
+                       pickerInput("select_peptide_barplot", "Select Peptide", choices=NULL)
+                     ),
+                     div(class = "col-md-4",
+                       selectInput("barplot_palette", "Color palette",
+                                   choices = c("Viridis" = "viridis", "Magma" = "magma", 
+                                               "Plasma" = "plasma", "Inferno" = "inferno",
+                                               "Cividis" = "cividis", "Rocket" = "rocket",
+                                               "Mako" = "mako", "Turbo" = "turbo"),
+                                   selected = "viridis")
+                     )
+                   ),
+                   checkboxInput("add_signif", "Add significance stars", value=TRUE)
+                 ),
+                 div(class = "text-end mb-2",
+                   actionButton("export_barplot", "Download Plot", 
+                                icon = icon("download"),
+                                class = "btn btn-primary",
+                                style = "background-color: #3b82f6; border: none;")
+                 ),
+                 div(class = "plot-container",
+                   withSpinner(plotOutput("barplot_single", height="500px"))
+                 )
+        ),
+        tabPanel("Table",
+                 div(class = "plot-container", style="max-height: 600px; overflow-y: auto;",
+                   DTOutput("data_table")
+                 )
+        ),
         tabPanel("DownloadData",
                  br(), br(), br(),
                  div(
@@ -73,28 +242,27 @@ ui <- fluidPage(
                      p("Wide format table ready for analysis/sharing")
                    ),
                    
-                   # 纯文字下载按钮
+                   # Download button
                    downloadButton("download_filtered", "Download Wide Format Table",
                                   style="color:white; background-color:#28a745; font-size:20px; 
                           padding:15px 30px; border-radius:12px; border:none; margin-top:20px;"),
                    
-                   # 下载状态提示
+                   # Download status message
                    br(), br(),
                    uiOutput("download_status")
                  )
         )
-        
-        
       )
     )
   ),
   
   tags$footer(
+    class = "mt-5 py-4",
+    style = "position:fixed; bottom:0; width:100%; background:white; border-top: 1px solid #e2e8f0;",
     tags$p(
-      HTML('Powered by <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/hua/index.html" target="_blank">Jie Hua</a> and <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/borso/index.html" target="_blank">Dr. Marco Borso</a>. Copyright © <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html" target="_blank">Imhof Group</a>'),
-      style="text-align:center; color: grey; padding:10px;"
-    ),
-    style="position:fixed; bottom:0; width:100%; background:#f8f9fa;"
+      class = "text-center mb-0",
+      style = "color: #64748b; font-size: 13px;",
+      HTML('Powered by <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/hua/index.html" target="_blank" style="color:#3b82f6;">Jie Hua</a> and <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/borso/index.html" target="_blank" style="color:#3b82f6;">Dr. Marco Borso</a>. Copyright © <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html" target="_blank" style="color:#3b82f6;">Imhof Group</a>')
+    )
   )
-  
 )
