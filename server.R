@@ -1,4 +1,9 @@
 server <- function(input, output, session) {
+  
+  source("functions.R")
+  depends_check()
+  
+  
   ms1_data <- reactiveVal(NULL)
   sample_data <- reactiveVal(NULL)
   filtered_data <- reactiveVal(NULL)

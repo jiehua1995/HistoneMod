@@ -1,8 +1,10 @@
 ui <- fluidPage(
+  
+  
   shinyalert::useShinyalert(force = TRUE),
   
   # Activate the shinyjs
-  useShinyjs(),
+  shinyjs::useShinyjs(),
   
   tags$head(
     # Tailwind CSS
