@@ -5,9 +5,7 @@ depends_check()
 # 1. Read the MS1 and sample files
 # -----------------------
 #ms1_file <- "F:/Quarto/MS1_modifications.csv"
-ms1_file <- "H:/Projects/202509_Ref11075_Histone Modifications/MS1_modifications.csv"
-#sample_file <- "F:/Quarto/samples.csv" # 修改为你的文件路径
-sample_file <- "Z:/AIG/Shared/Histones/Quarto/samples.csv"
+#sample_file <- "F:/Quarto/samples.csv" 
 
 ms1 <- read.csv(ms1_file)
 sample <- read.csv(sample_file)
