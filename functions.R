@@ -1,24 +1,22 @@
 # ------------------------
-# 0. install required packages
+# 0. Prepare environment
 # ------------------------
 
 depends_check <- function() {
   required_packages <- c(
-    "dplyr","tidyr","ggplot2","ggrepel","ggsignif","viridis","pheatmap","shiny","shinyWidgets","shinycssloaders","shinyjs","shinyalert","DT","car","cowplot"
+    "dplyr","tidyr","ggplot2","ggrepel","ggsignif","viridis","pheatmap","shiny","shinyWidgets","shinycssloaders","shinyjs","shinyalert","DT"
   )
-  
+  # Install pak if not already installed
   if (!requireNamespace("pak", quietly = TRUE)) {
     install.packages("pak")
   }
   library(pak)
-  
-  # Install packages
+  # Install required packages if not already installed
   for (pkg in required_packages) {
     if (!requireNamespace(pkg, quietly = TRUE)) {
       pak::pkg_install(pkg)
     }
   }
-  
   # Load required packages
   for (pkg in required_packages) {
     library(pkg, character.only = TRUE)

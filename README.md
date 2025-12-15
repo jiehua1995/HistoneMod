@@ -1,45 +1,104 @@
-# Shiny App for Histone Post-translational Modifications Data Visualization
+# HistoneMod: Histone Post-translational Modifications Quantification Tool
 
-This Shiny application provides an interactive platform for **loading, filtering, visualizing, and downloading data**.  
-It is designed to help researchers process peptide-level tables exported from skyline and generate common exploratory plots such as PCA, heatmaps, and barplots.
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](CHANGELOG.md)
+[![R](https://img.shields.io/badge/R-%3E%3D%204.0-brightgreen.svg)](https://www.r-project.org/)
 
----
+A Shiny application for **quantitative analysis of histone post-translational modifications (PTMs)**. This tool provides researchers with a tool for processing, filtering, visualizing, and analyzing peptide-level data exported from Skyline.
 
-## ✨ Features
+## 🌐 Live Demo
 
-- **Upload Data**
-  - Import table  from Skyline
-- **Data Filtering**
-  - Select or exclude unmodified peptides.
-  - Choose samples or peptides of interest interactively.
-- **Visualization**
-  - **PCA plot** for dimensionality reduction and sample clustering.
-  - **Heatmap** for peptide intensity patterns.
-  - **Barplots** for selected peptides.
-- **Download**
-  - Export filtered tables in wide format.
+Access the application online via shinyapps.io:
+
+| Version | Features | Link |
+|---------|----------|------|
+| **Full** | Complete functionality with advanced filtering, customizable visualizations, high-resolution plot exports | [🚀 Launch Full Version](https://jiehua.shinyapps.io/HistoneMod/) |
+| **Tiny** | Lightweight version with core features for quick analysis | [⚡ Launch Tiny Version](https://jiehua.shinyapps.io/HistomeModShiny/) |
+
+> **Note**: The full version offers more customization options and features but requires additional computational resources and memory. Due to limit of free shinyapps.io accounts, the app may take some time to start if it has been idle or it will be temporarily unavailable during peak times. For best performance, consider running the application locally.
+
+## ✨ Key Features
+
+### 📤 Data Upload & Validation
+- Import peptide-level tables directly from Skyline (CSV format)
+
+### 🔍 Advanced Filtering
+- **Peptide Selection**: Choose specific modifications or peptides of interest
+- **Sample Selection**: Filter by experimental groups or individual replicates
+- **Unmodified Peptides**: Option to exclude or include unmodified peptides
+
+### 📊 Rich Visualizations
+- **PCA Plot**: Dimensionality reduction and sample clustering analysis
+- **Heatmap**: Hierarchical clustering of peptide intensity patterns
+- **Barplots**: Detailed visualization of individual peptides
+
+### 💾 Data Export
+- Download filtered datasets in wide format (CSV)
+- Export high-resolution plots (PNG, JPEG, PDF)
+- Customizable figure dimensions and resolution
+
+### 🎨 Modern UI/UX
+- Clean, responsive design with Tailwind CSS
 
 ## 🚀 Quick Start
 
-1. **Open the `app.R` in RStudio.**  
+### Online Usage
+Simply visit the [live demo links](#-live-demo) above - no installation required!
 
-   Make sure `app.R` and `functions.R`, `ui.R`, and `server.R` are in the same directory.
+### Local Installation
 
-2. **Load required packages.**  
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/jiehua1995/HistoneMod.git
+   cd HistoneMod
+   ```
 
-   In the R console, run:
-
+2. **Install dependencies**
+   
+   Choose one of the following methods:
+   
+   **Option A: Using renv (Recommended)**
    ```r
+   # Restore the exact package versions from renv.lock
+   renv::restore()
+   ```
+   
+   **Option B: Using the dependency checker**
+   ```r
+   # Automatically install all required packages
    source("functions.R")
    depends_check()
    ```
 
-3. **Run the app**
+3. **Run the application**
+   
+   Open `app.R` in RStudio and click the **Run App** button, or run:
+   ```r
+   shiny::runApp()
+   ```
 
-   Click the **Run App** button in the top-right corner of Rstudio.
+**Tip**: Use the built-in help buttons (?) in the application for detailed format examples.
 
-## 👥 Authors
+## 👥 Authors & Contributors
 
-- Jie Hua
-- Dr. Marco Borso
-- Imhof Group
+- **Jie Hua** – Package developer and maintainer  
+- **Dr. Marco Borso** – Contributor (code review / testing)  
+- **Beyza Bozdağ** – Contributor (code review / testing)  
+- **Prof. Dr. Axel Imhof** – Supervisor
+
+**Group**: [Imhof Laboratory](https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html)  
+**Institution**: Ludwig Maximilian University of Munich
+
+## 🐛 Bug Reports & Feature Requests
+
+If you encounter any issues or have suggestions for improvements, please:
+1. Check existing [issues](https://github.com/yourusername/HistoneMod/issues)
+2. Create a new issue with detailed description
+3. Or contact the development team directly
+
+<div align="center">
+  
+**[⬆ Back to Top](#histonemod-histone-post-translational-modifications-quantification-tool)**
+
+Made with ❤️ by the Imhof Group
+
+</div>

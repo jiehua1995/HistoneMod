@@ -1,3 +1,7 @@
+source("functions.R")
+depends_check()
+
+
 ui <- fluidPage(
   
   
@@ -102,12 +106,12 @@ ui <- fluidPage(
       div(class = "sidebar-section",
         h5(style="font-weight: 600; color: #1e293b; margin-bottom: 16px;", 
            icon("filter"), " Data Selection"),
-        pickerInput("select_peptides", label = tagList(
+        shinyWidgets::pickerInput("select_peptides", label = tagList(
           span(style="font-weight: 600; color: #334155; font-size: 14px;", "Peptide Modifications"),
           actionLink("peptide_info", label = NULL, icon = icon("question-circle"),
                      style="background-color: #e2e8f0; border-radius:50%; padding:4px 6px; color:#475569; margin-left:8px; font-size:12px;")
         ), choices=NULL, multiple=TRUE, options=list(`actions-box`=TRUE)),
-        pickerInput("select_samples", label = tagList(
+        shinyWidgets::pickerInput("select_samples", label = tagList(
           span(style="font-weight: 600; color: #334155; font-size: 14px;", "Samples"),
           actionLink("sample_select_info", label = NULL, icon = icon("question-circle"),
                      style="background-color: #e2e8f0; border-radius:50%; padding:4px 6px; color:#475569; margin-left:8px; font-size:12px;")
@@ -200,10 +204,10 @@ ui <- fluidPage(
                  div(class = "mb-3",
                    div(class = "row",
                      div(class = "col-md-4",
-                       pickerInput("select_protein", "Select Protein", choices=NULL)
+                       shinyWidgets::pickerInput("select_protein", "Select Protein", choices=NULL)
                      ),
                      div(class = "col-md-4",
-                       pickerInput("select_peptide_barplot", "Select Peptide", choices=NULL)
+                       shinyWidgets::pickerInput("select_peptide_barplot", "Select Peptide", choices=NULL)
                      ),
                      div(class = "col-md-4",
                        selectInput("barplot_palette", "Color palette",
@@ -264,7 +268,7 @@ ui <- fluidPage(
     tags$p(
       class = "text-center mb-0",
       style = "color: #64748b; font-size: 13px;",
-      HTML('Powered by <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/hua/index.html" target="_blank" style="color:#3b82f6;">Jie Hua</a> and <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/borso/index.html" target="_blank" style="color:#3b82f6;">Dr. Marco Borso</a>. Copyright © <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html" target="_blank" style="color:#3b82f6;">Imhof Group</a>')
+      HTML('Powered by <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/hua/index.html" target="_blank" style="color:#3b82f6;">Jie Hua</a>, <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/borso/index.html" target="_blank" style="color:#3b82f6;">Dr. Marco Borso</a> and <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/bozdag/index.html" target="_blank" style="color:#3b82f6;">Beyza Bozdağ</a>. Copyright © <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html" target="_blank" style="color:#3b82f6;">Imhof Group</a>')
     )
   )
 )
