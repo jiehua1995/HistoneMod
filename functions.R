@@ -374,7 +374,8 @@ plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_sign
   }
   
   # Set y-axis limits after calculating significance positions
-  p <- p + ylim(0, y_max)
+  y_max <- max(y_max, 100)
+  p <- p + coord_cartesian(ylim = c(0, y_max))
   
   return(p)
 }
