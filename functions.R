@@ -12,7 +12,7 @@
 depends_check <- function() {
   required_packages <- c(
     "dplyr","tidyr","ggplot2","ggrepel","ggsignif","viridis","pheatmap",
-    "png","ragg",
+    "png","ragg","svglite",
     "jsonlite","httr","BiocVersion",
     "shiny","shinyWidgets","shinycssloaders","shinyjs","shinyalert","DT"
   )
@@ -364,7 +364,8 @@ plot_barplot_single <- function(
   add_signif = TRUE,
   color_palette = "viridis",
   y_limits = NULL,
-  font_scale = 1
+  font_scale = 1,
+  title_text = NULL
 ) {
   colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
 
@@ -416,7 +417,7 @@ plot_barplot_single <- function(
     geom_col(position=position_dodge(width=0.9)) +
     geom_errorbar(aes(ymin=mean_percentage - se, ymax=mean_percentage + se),
                   width=0.2, position=position_dodge(width=0.9)) +
-    labs(title = NULL, y = "Percentage", x = "Group") +
+    labs(title = title_text, y = "Percentage", x = "Group") +
     theme_minimal(base_family = "sans") +
     theme(
       panel.grid = element_blank(),
@@ -424,7 +425,9 @@ plot_barplot_single <- function(
       axis.title = element_text(size = 16 * font_scale),
       axis.text = element_text(size = 14 * font_scale),
       axis.text.x = element_text(angle = 45, hjust = 1),
-      legend.position = "none"
+      legend.position = "none",
+      # Keep the peptide label visually consistent with x-axis tick font size.
+      plot.title = element_text(size = 14 * font_scale, face = "plain", hjust = 0)
     ) +
     fill_scale
   
@@ -517,7 +520,7 @@ plot_barplot_single <- function(
 # ------------------------
 # 5. App version helpers
 # ------------------------
-APP_VERSION <- "0.5.0"
+APP_VERSION <- "0.5.1"
 GITHUB_REPO <- "jiehua1995/HistoneMod"
 
 normalize_version <- function(x) {

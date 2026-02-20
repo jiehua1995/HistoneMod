@@ -1,6 +1,6 @@
 # HistoneMod: Histone Post-translational Modifications Quantification Tool
 
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.5.1-blue.svg)](CHANGELOG.md)
 [![R](https://img.shields.io/badge/R-%3E%3D%204.0-brightgreen.svg)](https://www.r-project.org/)
 
 A Shiny application for **quantitative analysis of histone post-translational modifications (PTMs)**. This tool provides researchers with a tool for processing, filtering, visualizing, and analyzing peptide-level data exported from Skyline.
