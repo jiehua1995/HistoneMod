@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-02-20
+
+### ✨ Added
+- **Quick PDF report (A4 landscape)**: Added a multi-page PDF report generator with a cover page, data source summary, PCA, Heatmap, and Barplot pages.
+- **PDF cover enhancements**: Cover now includes the current **R version** (auto-inserted) and a more configurable cover layout.
+- **Central PDF configuration (`pdf_cfg`)**: Added a single config list to control page size, margins, header/footer, cover layout, and per-plot target sizes.
+- **Barplot paging/layout logic**: Barplots are automatically paginated per protein and laid out in a configurable grid.
+
+### 🔧 Changed
+- **Vector-first PDF rendering**: PDF plots are drawn directly as vector graphics (no intermediate PNG embedding) for better quality and faster generation.
+- **PDF-aware font scaling**: Heatmap and Barplot font sizes are scaled during PDF rendering to reduce overlaps when plots are fitted into smaller viewports.
+- **Export UX improvements**: Export dialogs use a fixed-size preview frame with `object-fit: contain` and include a Zoom preview view.
+- **Export defaults match on-screen size**: Default export Width/Height are derived from the current plot output size (rounded inches).
+- **Annotation/typography refinements**: Barplot significance brackets/stars and ANOVA label sizing/spacing were tuned to improve readability.
+
+### 🐛 Fixed
+- **Prevented download-related crashes**: Hardened numeric parsing and wrapped download/report generation in error handling so failures do not terminate the Shiny session.
+- **More robust PDF generation**: Page-level error trapping writes a readable failure message into the PDF instead of aborting the whole report.
+
+### 🧹 Removed
+- Removed unused legacy `plot_barplot()` (all-peptides) implementation in favor of `plot_barplot_single()`.
+
+### 📚 Documentation
+- Added clear English `##### ... #####` section headers and `# CUSTOMIZE:` notes across `functions.R`, `ui.R`, and `server.R` to highlight commonly edited knobs.
+
 ## [0.4.0] - 2026-02-20
 
 ### ✨ Added

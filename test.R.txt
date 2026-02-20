@@ -49,10 +49,11 @@ proteins <- unique(filtered$Protein.Name)
 if(length(proteins) > 0) {
   protein_name <- proteins[1]
   cat("Testing Barplot for protein:", protein_name, "\n")
-  barplots <- plot_barplot(filtered, protein_name, add_signif=TRUE)
-  
-  # Display the first peptide
-  if(length(barplots) > 0) {
-    print(barplots[[1]])
+  peptides <- unique(filtered$Peptide.Note[filtered$Protein.Name == protein_name])
+  if(length(peptides) > 0) {
+    peptide_name <- peptides[1]
+    cat("Testing Barplot for peptide:", peptide_name, "\n")
+    p <- plot_barplot_single(filtered, protein_name, peptide_name, add_signif = TRUE)
+    print(p)
   }
 }
