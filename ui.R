@@ -1,7 +1,14 @@
+##### Shiny UI (Layout + Styling) #####
+# This file defines the visible UI: page structure, sidebar controls, tabs,
+# and CSS used by the export-preview frames.
+#
+# CUSTOMIZE: App title/subtitle/logo, default plot heights, and CSS live here.
+
 source("functions.R")
 depends_check()
 
 
+##### Top-Level Page Container #####
 ui <- fluidPage(
   
   
@@ -10,12 +17,15 @@ ui <- fluidPage(
   # Activate the shinyjs
   shinyjs::useShinyjs(),
   
+  ##### Global Head Includes (CSS/JS) #####
+  # CUSTOMIZE: If you need offline usage, replace CDN assets with local files.
   tags$head(
-    # Tailwind CSS
+    # Tailwind CSS (CDN)
     tags$script(src = "https://cdn.tailwindcss.com"),
-    # Confetti effect
+    # Confetti effect (CDN)
     tags$script(src = "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"),
-    # Custom styles
+    ##### Custom Styles #####
+    # CUSTOMIZE: Update sizes/spacing here (avoid changing IDs/classes used in server.R).
     tags$style(HTML("
       body { background: #f8fafc; font-family: 'Segoe UI', sans-serif; }
       .plot-container { 
@@ -83,10 +93,43 @@ ui <- fluidPage(
       }
       .tab-content { padding: 24px; }
       footer { background: white !important; border-top: 1px solid #e2e8f0; }
+
+      ##### Export Preview Frames #####
+      /* Fixed frame size; image fits without resizing the frame */
+      /* CUSTOMIZE: adjust max-width/height to change preview frame size */
+      .export-preview-frame {
+        width: 100%;
+        max-width: 520px;
+        margin: 0 auto;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .export-preview-frame--fixed {
+        height: 260px;
+      }
+      .export-preview-frame--zoom {
+        height: 70vh;
+        max-height: 720px;
+        max-width: 100%;
+      }
+      .export-preview-frame .shiny-image-output {
+        width: 100%;
+        height: 100% !important;
+      }
+      .export-preview-frame img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: contain;
+      }
     "))
   ),
   tags$div(id = "confetti-container", style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"),
   
+  ##### Header Brand (Logo + Title) #####
+  # CUSTOMIZE: Replace `www/logo.png` and update the title/subtitle text.
   div(class = "container-fluid px-4 py-4",
     div(class = "header-brand",
       tags$img(src = "logo.png", class = "app-logo", alt = "Logo"),
@@ -99,10 +142,11 @@ ui <- fluidPage(
     )
   ),
   
+  ##### Sidebar + Main Panels #####
   sidebarLayout(
     sidebarPanel(
       class = "px-3",
-      # Upload section
+      ##### Sidebar: Upload Files #####
       div(class = "sidebar-section",
         h5(style="font-weight: 600; color: #1e293b; margin-bottom: 16px;", 
            icon("upload"), " Upload Files"),
@@ -118,7 +162,7 @@ ui <- fluidPage(
         ), accept=".csv")
       ),
       
-      # Selection section
+      ##### Sidebar: Data Selection #####
       div(class = "sidebar-section",
         h5(style="font-weight: 600; color: #1e293b; margin-bottom: 16px;", 
            icon("filter"), " Data Selection"),
@@ -134,7 +178,7 @@ ui <- fluidPage(
         ), choices=NULL, multiple=TRUE, options=list(`actions-box`=TRUE))
       ),
       
-      # Options section
+      ##### Sidebar: Analysis Options #####
       div(class = "sidebar-section",
         h5(style="font-weight: 600; color: #1e293b; margin-bottom: 16px;", 
            icon("cog"), " Options"),
@@ -145,20 +189,23 @@ ui <- fluidPage(
         ), value = TRUE)
       ),
       
-      # Validation status
+      ##### Sidebar: Validation Status #####
       div(class = "sidebar-section",
         uiOutput("validation_status")
       )
     ),
     
-    # Main content area
+    ##### Main Content: Tabs #####
     mainPanel(
       tabsetPanel(
+        ##### Tab: Data Preview #####
         tabPanel("Data Preview",
                  div(class = "p-3",
                    uiOutput("preview_content")
                  )
         ),
+        ##### Tab: PCA #####
+        # CUSTOMIZE: Default plot height is set in `plotOutput(..., height="600px")`.
         tabPanel("PCA",
                  div(class = "mb-3",
                    div(class = "row",
@@ -187,6 +234,7 @@ ui <- fluidPage(
                    withSpinner(plotOutput("pca_plot", height="600px"))
                  )
         ),
+        ##### Tab: Heatmap #####
         tabPanel("Heatmap",
                  div(class = "mb-3",
                    div(class = "row",
@@ -216,6 +264,7 @@ ui <- fluidPage(
                    withSpinner(plotOutput("heatmap_plot", height="600px"))
                  )
         ),
+        ##### Tab: Barplot #####
         tabPanel("Barplot",
                  div(class = "mb-3",
                    div(class = "row",
@@ -262,28 +311,29 @@ ui <- fluidPage(
                    withSpinner(plotOutput("barplot_single", height="500px"))
                  )
         ),
+        ##### Tab: Table #####
         tabPanel("Table",
                  div(class = "plot-container", style="max-height: 600px; overflow-y: auto;",
                    DTOutput("data_table")
                  )
         ),
+        ##### Tab: Download Data / Report #####
+        # CUSTOMIZE: Button labels and the panel styling live here.
         tabPanel("Download Data",
                  br(), br(), br(),
                  div(
                    style = "max-width:600px; margin:auto; padding:30px; background:#f8f9fa; 
              border-radius:15px; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.1);",
-
-                   # Title
-                   tags$div(
-                     #icon("file-download", lib="font-awesome", style="font-size:50px; color:#28a745;"),
-                     h3("Download Your Processed Data"),
-                     p("Wide format table ready for analysis/sharing")
-                   ),
                    
                    # Download button
                    downloadButton("download_filtered", "Download Wide Format Table",
                                   style="color:white; background-color:#28a745; font-size:20px; 
-                          padding:15px 30px; border-radius:12px; border:none; margin-top:20px;"),
+                      padding:15px 30px; border-radius:12px; border:none; margin-top:20px; width:100%; display:block;"),
+
+                     br(),
+                     downloadButton("download_plots_pdf", "Generate a Quick Report",
+                        style="color:white; background-color:#3b82f6; font-size:20px; 
+                      padding:15px 30px; border-radius:12px; border:none; margin-top:16px; width:100%; display:block;"),
                    
                    # Download status message
                    br(), br(),
@@ -294,6 +344,7 @@ ui <- fluidPage(
     )
   ),
   
+  ##### Footer #####
   tags$footer(
     class = "mt-5 py-4",
     style = "position:fixed; bottom:0; width:100%; background:white; border-top: 1px solid #e2e8f0;",

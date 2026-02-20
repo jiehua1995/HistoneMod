@@ -1,3 +1,10 @@
+##### HistoneMod: Shared Functions #####
+# This file contains reusable helpers for: dependency setup, input validation,
+# data processing, plotting (PCA/Heatmap/Barplot), and version/download helpers.
+# It is sourced by both ui.R and server.R.
+
+##### Dependencies & Environment Setup #####
+# CUSTOMIZE: Add/remove packages in `required_packages` if your app evolves.
 # ------------------------
 # 0. Prepare environment
 # ------------------------
@@ -5,9 +12,13 @@
 depends_check <- function() {
   required_packages <- c(
     "dplyr","tidyr","ggplot2","ggrepel","ggsignif","viridis","pheatmap",
+    "png","ragg",
     "jsonlite","httr","BiocVersion",
     "shiny","shinyWidgets","shinycssloaders","shinyjs","shinyalert","DT"
   )
+
+  # CUSTOMIZE: If you want stricter version pinning, prefer renv.lock management
+  # instead of editing this function.
   # Install pak if not already installed
   if (!requireNamespace("pak", quietly = TRUE)) {
     install.packages("pak")
@@ -25,6 +36,8 @@ depends_check <- function() {
   }
 }
 
+##### Input File Validation #####
+# CUSTOMIZE: Required column names live in `required_cols` below.
 # ------------------------
 # File Validation Functions
 # ------------------------
@@ -85,6 +98,9 @@ validate_sample_file <- function(file_path) {
   })
 }
 
+##### Data Processing: Percentage Calculation #####
+# CUSTOMIZE: `exclude_un`, `max_percentage`, and the peptide "un/unun" rule
+# are the most common knobs to tweak.
 # ------------------------
 # 1. percentage_calculation
 # ------------------------
@@ -119,6 +135,8 @@ percentage_calculation <- function(ms1, sample,
   
   # Exclude unmodified
   if(exclude_un) {
+    # CUSTOMIZE: This rule treats trailing "_un" or "_unun" (case-insensitive)
+    # as unmodified peptides.
     df <- df %>% filter({
       last_mod <- sub("^.*_", "", Peptide.Note)
       !grepl("^un(un)*$", last_mod, ignore.case = TRUE)
@@ -140,6 +158,8 @@ percentage_calculation <- function(ms1, sample,
   return(df)
 }
 
+##### Plotting: PCA #####
+# CUSTOMIZE: Point/text sizes and theme settings are in `plot_pca()`.
 # ------------------------
 # 2. PCA plot
 # ------------------------
@@ -243,10 +263,21 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis")
 }
 
 
+##### Plotting: Heatmap (pheatmap) #####
+# CUSTOMIZE: Font sizes are controlled by `fontsize`, `fontsize_row`, `fontsize_col`.
+# The PDF report may pass scaled values here to avoid overlap.
 # ------------------------
 # 3. Heatmap plot
 # ------------------------
-plot_heatmap <- function(data_merge, cluster_rows=TRUE, cluster_cols=TRUE, color_palette="viridis") {
+plot_heatmap <- function(
+  data_merge,
+  cluster_rows = TRUE,
+  cluster_cols = TRUE,
+  color_palette = "viridis",
+  fontsize = 12,
+  fontsize_row = NULL,
+  fontsize_col = NULL
+) {
   colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
 
   if ("Replicate.Name" %in% colnames(data_merge)) {
@@ -288,13 +319,28 @@ plot_heatmap <- function(data_merge, cluster_rows=TRUE, cluster_cols=TRUE, color
                    "turbo" = viridis::turbo(100),
                    viridis::viridis(100))
 
+  fontsize <- suppressWarnings(as.numeric(fontsize))
+  if (!is.finite(fontsize) || is.na(fontsize) || fontsize <= 0) fontsize <- 12
+  fontsize <- max(4, min(24, fontsize))
+
+  if (is.null(fontsize_row)) fontsize_row <- fontsize
+  if (is.null(fontsize_col)) fontsize_col <- fontsize
+  fontsize_row <- suppressWarnings(as.numeric(fontsize_row))
+  fontsize_col <- suppressWarnings(as.numeric(fontsize_col))
+  if (!is.finite(fontsize_row) || is.na(fontsize_row) || fontsize_row <= 0) fontsize_row <- fontsize
+  if (!is.finite(fontsize_col) || is.na(fontsize_col) || fontsize_col <= 0) fontsize_col <- fontsize
+  fontsize_row <- max(3, min(24, fontsize_row))
+  fontsize_col <- max(3, min(24, fontsize_col))
+
   # Plot heatmap in the simplest/original way (pheatmap draws as a side effect).
   p <- pheatmap::pheatmap(
     heat_mat,
     cluster_rows = cluster_rows,
     cluster_cols = cluster_cols,
     color = colors,
-    fontsize = 12,
+    fontsize = fontsize,
+    fontsize_row = fontsize_row,
+    fontsize_col = fontsize_col,
     border_color = "grey50",
     angle_col = 45,
     main = "",
@@ -305,11 +351,32 @@ plot_heatmap <- function(data_merge, cluster_rows=TRUE, cluster_cols=TRUE, color
 }
 
 
+##### Plotting: Barplot (Single Protein + Single Peptide) #####
+# CUSTOMIZE: The key knob for PDF readability is `font_scale`.
+# For Shiny on-screen plots, keep `font_scale = 1`.
 # ------------------------
 # 4. Barplot per protein (single peptide)
 # ------------------------
-plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_signif=TRUE, color_palette="viridis", y_limits = NULL) {
+plot_barplot_single <- function(
+  data_merge,
+  protein_name,
+  peptide_name,
+  add_signif = TRUE,
+  color_palette = "viridis",
+  y_limits = NULL,
+  font_scale = 1
+) {
   colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
+
+  font_scale <- suppressWarnings(as.numeric(font_scale))
+  if (!is.finite(font_scale) || is.na(font_scale) || font_scale <= 0) font_scale <- 1
+  font_scale <- max(0.2, min(2.5, font_scale))
+
+  # ggplot text `size` is in mm; theme text sizes are in pt.
+  # Convert pt -> mm so annotation text can visually match axis tick text.
+  pt_to_mm <- function(pt) pt / 2.845276
+  axis_tick_pt <- 14
+  axis_tick_mm <- pt_to_mm(axis_tick_pt) * font_scale
   
   df <- data_merge
   if(!is.null(protein_name)) df <- df %>% filter(Protein.Name == protein_name)
@@ -317,7 +384,7 @@ plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_sign
   
   if(nrow(df_sub) == 0) {
     return(ggplot() + 
-           geom_text(aes(0, 0, label = "No data available"), size = 6) + 
+           geom_text(aes(0, 0, label = "No data available"), size = 6 * font_scale) + 
            theme_void())
   }
   
@@ -354,14 +421,15 @@ plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_sign
     theme(
       panel.grid = element_blank(),
       panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
-      axis.title = element_text(size = 16),
-      axis.text = element_text(size = 14),
+      axis.title = element_text(size = 16 * font_scale),
+      axis.text = element_text(size = 14 * font_scale),
       axis.text.x = element_text(angle = 45, hjust = 1),
       legend.position = "none"
     ) +
     fill_scale
   
   # Add ANOVA p-value to top-right corner if significance testing is enabled
+  anova_present <- FALSE
   if(add_signif && length(unique(df_sub$Group)) >= 2) {
     anova_pval <- tryCatch({
       if(length(unique(df_sub$Group)) == 2) {
@@ -375,21 +443,24 @@ plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_sign
     }, error=function(e) NA)
     
     if(!is.na(anova_pval)) {
+      anova_present <- TRUE
       anova_text <- if(length(unique(df_sub$Group)) == 2) {
-        sprintf("t-test p = %.4f", anova_pval)
+        sprintf("t-test p = %.6f", anova_pval)
       } else {
-        sprintf("ANOVA p = %.4f", anova_pval)
+        sprintf("ANOVA p = %.6f", anova_pval)
       }
       p <- p + annotate("text", x=Inf, y=Inf, label=anova_text,
-                       hjust=1.1, vjust=1.5, size=6, fontface="plain")
+                       hjust=1.1, vjust=1.5, size = axis_tick_mm * 1, fontface="plain")
     }
   }
   
   # Add significance stars (only p < 0.05)
-  y_max <- y_base * 1.2  # Default extension
+  y_max <- y_base * 1.5  # Default extension
   if(add_signif && length(unique(df_sub$Group))>=2) {
+    # CUSTOMIZE: If you want a different significance threshold, change 0.05.
     comps <- combn(unique(df_sub$Group), 2, simplify=FALSE)
-    step <- y_base * 0.08
+    # Keep the first bracket closer to the bars
+    step <- if (is.finite(y_base) && y_base > 0) y_base * 0.1 else 0.5
     ypos <- y_base + step
     annotations <- c()
     signif_comps <- list()
@@ -414,9 +485,17 @@ plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_sign
       p <- p + geom_signif(comparisons = signif_comps,
                            annotations = annotations,
                            y_position = y_positions,
-                           tip_length = 0.02)
+                           tip_length = 0.02,
+                           textsize = 6 * font_scale,
+                           # Move stars down closer to the bracket line
+                           vjust = 0.7)
       # Extend y-axis to show all significance brackets
       y_max <- max(y_positions) + step * 1.5
+
+      # Leave extra room above the highest bracket for the ANOVA label
+      if (isTRUE(anova_present)) {
+        y_max <- y_max + step * 1.2
+      }
     }
   }
   
@@ -433,111 +512,12 @@ plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_sign
   return(p)
 }
 
-# ------------------------
-# 4b. Barplot per protein (legacy - all peptides)
-# ------------------------
-plot_barplot <- function(data_merge, protein_name=NULL, add_signif=TRUE) {
-  colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
-  
-  df <- data_merge
-  if(!is.null(protein_name)) df <- df %>% filter(Protein.Name == protein_name)
-  
-  peptides <- unique(df$Peptide.Note)
-  plots <- list()
-  
-  for(peptide in peptides) {
-    df_sub <- df %>% filter(Peptide.Note == peptide)
-    
-    summary_data <- df_sub %>%
-      group_by(Group) %>%
-      summarise(mean_percentage = mean(Percentage, na.rm=TRUE),
-                sd_percentage = sd(Percentage, na.rm=TRUE),
-                n=n(),
-                se = sd_percentage / sqrt(n),
-                .groups="drop") %>%
-      arrange(Group)
-    
-    y_base <- max(summary_data$mean_percentage + ifelse(is.na(summary_data$se), 0, summary_data$se), na.rm=TRUE)
-    step <- ifelse(y_base==0,0.5,y_base*0.12)
-    
-    # Extend y-axis by 20% to give more space
-    y_max <- max(summary_data$mean_percentage + summary_data$se, na.rm=TRUE) * 1.2
-    
-    p <- ggplot(summary_data, aes(x=Group, y=mean_percentage, fill=Group)) +
-      geom_col(position=position_dodge(width=0.9)) +
-      geom_errorbar(aes(ymin=mean_percentage - se, ymax=mean_percentage + se),
-                    width=0.2, position=position_dodge(width=0.9)) +
-      labs(title=paste0("Peptide: ", peptide), y="Percentage", x="Group") +
-      theme_minimal() +
-      theme(axis.title = element_text(size = 12),axis.text = element_text(size=12),
-        axis.text.x = element_text(angle=45, hjust=1), legend.position="none",
-        plot.title = element_text(size=12)) +
-      scale_fill_viridis_d() +
-      ylim(0, y_max)
-    
-    # Add ANOVA p-value to top-right corner if significance testing is enabled
-    if(add_signif && length(unique(df_sub$Group)) >= 2) {
-      anova_pval <- tryCatch({
-        if(length(unique(df_sub$Group)) == 2) {
-          # Use t-test for 2 groups
-          t.test(Percentage ~ Group, data=df_sub)$p.value
-        } else {
-          # Use ANOVA for 3+ groups
-          aov_result <- aov(Percentage ~ Group, data=df_sub)
-          summary(aov_result)[[1]]["Pr(>F)"][1,1]
-        }
-      }, error=function(e) NA)
-      
-      if(!is.na(anova_pval)) {
-        anova_text <- if(length(unique(df_sub$Group)) == 2) {
-          sprintf("t-test p = %.4f", anova_pval)
-        } else {
-          sprintf("ANOVA p = %.4f", anova_pval)
-        }
-        p <- p + annotate("text", x=Inf, y=Inf, label=anova_text,
-                         hjust=1.1, vjust=1.5, size=3.5, fontface="plain")
-      }
-    }
-    
-    # only p < 0.05
-    if(add_signif && length(unique(df_sub$Group))>=2) {
-      comps <- combn(unique(df_sub$Group), 2, simplify=FALSE)
-      ypos <- y_base + step
-      annotations <- c()
-      signif_comps <- list()
-      
-      for(cmp in comps) {
-        subdf <- df_sub %>% filter(Group %in% cmp)
-        pval <- tryCatch(t.test(Percentage ~ Group, data=subdf)$p.value, error=function(e) NA)
-        if(!is.na(pval) && pval < 0.05) { 
-          signif_comps[[length(signif_comps)+1]] <- cmp
-          if(pval < 0.001) ann <- "***"
-          else if(pval < 0.01) ann <- "**"
-          else ann <- "*"
-          annotations <- c(annotations, ann)
-          ypos <- ypos + step
-        }
-      }
-      
-      # Add significance labels
-      if(length(signif_comps) > 0) {
-        p <- p + geom_signif(comparisons = signif_comps,
-                             annotations = annotations,
-                             y_position = seq(y_base+step, by=step, length.out=length(signif_comps)),
-                             tip_length = 0.02)
-      }
-    }
-    
-    plots[[peptide]] <- p
-  }
-  
-  return(plots)
-}
-
+##### App Metadata & Version Checking #####
+# CUSTOMIZE: Update APP_VERSION when you release; set GITHUB_REPO to your repo.
 # ------------------------
 # 5. App version helpers
 # ------------------------
-APP_VERSION <- "0.4.0"
+APP_VERSION <- "0.5.0"
 GITHUB_REPO <- "jiehua1995/HistoneMod"
 
 normalize_version <- function(x) {
@@ -593,6 +573,10 @@ get_latest_release_version_cached <- local({
   }
 })
 
+##### Download Module (Legacy Helper) #####
+# NOTE: The main app now uses the export modals in server.R.
+# This module remains as a small reusable download helper.
+# CUSTOMIZE: Update the default width/height/dpi inside ggsave() if you use it.
 # ------------------------
 # 5. Downlod the picture
 # ------------------------
