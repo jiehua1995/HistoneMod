@@ -70,6 +70,17 @@ ui <- fluidPage(
         font-size: 14px;
         font-weight: 500;
       }
+      .header-brand {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .app-logo {
+        height: 78px;
+        width: auto;
+        display: block;
+        flex: 0 0 auto;
+      }
       .tab-content { padding: 24px; }
       footer { background: white !important; border-top: 1px solid #e2e8f0; }
     "))
@@ -77,9 +88,14 @@ ui <- fluidPage(
   tags$div(id = "confetti-container", style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"),
   
   div(class = "container-fluid px-4 py-4",
-    div(class = "main-title", "Histone PTM Quantification"),
-    div(style = "color: #64748b; font-size: 14px; margin-bottom: 24px;",
-      "Quantitative analysis of histone post-translational modifications"
+    div(class = "header-brand",
+      tags$img(src = "logo.png", class = "app-logo", alt = "Logo"),
+      div(
+        div(class = "main-title", "Histone PTM Quantification"),
+        div(style = "color: #64748b; font-size: 14px; margin-bottom: 24px;",
+          "Quantitative analysis of histone post-translational modifications"
+        )
+      )
     )
   ),
   
@@ -218,7 +234,23 @@ ui <- fluidPage(
                                    selected = "viridis")
                      )
                    ),
-                   checkboxInput("add_signif", "Add significance stars", value=TRUE)
+                   checkboxInput("add_signif", "Add significance stars", value=TRUE),
+                   checkboxInput("barplot_y_auto", "Y-axis: Auto", value = TRUE),
+                   conditionalPanel(
+                     condition = "input.barplot_y_auto == false",
+                     div(class = "row",
+                       div(class = "col-md-6",
+                         sliderInput(
+                           "barplot_y_range",
+                           "Y-axis range",
+                           min = 0,
+                           max = 100,
+                           value = c(0, 100),
+                           step = 1
+                         )
+                       )
+                     )
+                   )
                  ),
                  div(class = "text-end mb-2",
                    actionButton("export_barplot", "Download Plot", 
@@ -235,12 +267,12 @@ ui <- fluidPage(
                    DTOutput("data_table")
                  )
         ),
-        tabPanel("DownloadData",
+        tabPanel("Download Data",
                  br(), br(), br(),
                  div(
                    style = "max-width:600px; margin:auto; padding:30px; background:#f8f9fa; 
              border-radius:15px; text-align:center; box-shadow:0 4px 15px rgba(0,0,0,0.1);",
-                   
+
                    # Title
                    tags$div(
                      #icon("file-download", lib="font-awesome", style="font-size:50px; color:#28a745;"),
@@ -265,10 +297,6 @@ ui <- fluidPage(
   tags$footer(
     class = "mt-5 py-4",
     style = "position:fixed; bottom:0; width:100%; background:white; border-top: 1px solid #e2e8f0;",
-    tags$p(
-      class = "text-center mb-0",
-      style = "color: #64748b; font-size: 13px;",
-      HTML('Powered by <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/hua/index.html" target="_blank" style="color:#3b82f6;">Jie Hua</a>, <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/borso/index.html" target="_blank" style="color:#3b82f6;">Dr. Marco Borso</a> and <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/bozdag/index.html" target="_blank" style="color:#3b82f6;">Beyza Bozdağ</a>. Copyright © <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html" target="_blank" style="color:#3b82f6;">Imhof Group</a>')
-    )
+    uiOutput("footer_line")
   )
 )

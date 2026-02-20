@@ -1,6 +1,6 @@
 # HistoneMod: Histone Post-translational Modifications Quantification Tool
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](CHANGELOG.md)
 [![R](https://img.shields.io/badge/R-%3E%3D%204.0-brightgreen.svg)](https://www.r-project.org/)
 
 A Shiny application for **quantitative analysis of histone post-translational modifications (PTMs)**. This tool provides researchers with a tool for processing, filtering, visualizing, and analyzing peptide-level data exported from Skyline.
@@ -14,7 +14,8 @@ Access the application online via shinyapps.io:
 | **Full** | Complete functionality with advanced filtering, customizable visualizations, high-resolution plot exports | [🚀 Launch Full Version](https://jiehua.shinyapps.io/HistoneMod/) |
 | **Tiny** | Lightweight version with core features for quick analysis | [⚡ Launch Tiny Version](https://jiehua.shinyapps.io/HistomeModShiny/) |
 
-> **Note**: The full version offers more customization options and features but requires additional computational resources and memory. Due to limit of free shinyapps.io accounts, the app may take some time to start if it has been idle or it will be temporarily unavailable during peak times. For best performance, consider running the application locally.
+> **Note**: The full version offers more customization options and features but requires additional computational resources and memory. Due to limit of free shinyapps.io accounts, the app may take some time (more than 3 min) to start if it has been idle or it will be temporarily unavailable during peak times. 
+> For best performance, consider running the application locally. If you have to use online version to quickly check the data, please use the tiny version.
 
 ## ✨ Key Features
 

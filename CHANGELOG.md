@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-02-20
+
+### ✨ Added
+- **WYSIWYG export preview in Download modal**: Added a Preview section for PCA / Barplot / Heatmap export dialogs. The preview auto-refreshes when format/width/height/DPI changes and renders using the export aspect ratio.
+- **Configurable Barplot Y-axis range**: Added an Auto toggle and a slider to switch between automatic scaling and a manual Y-range.
+- **Footer version + update notice**: Footer shows the current app version and (when online) compares it with the latest GitHub release (skips comparison when offline).
+- **Logo in the title area**: Display `logo.png` to the left of the two-line title.
+
+### 🔧 Changed
+- **Heatmap rendering/export flow**: `pheatmap` now returns a `silent=TRUE` object, and rendering/export explicitly calls `grid.draw()` to avoid blank exports caused by reactive caching.
+- **Plot styling/readability**: Tweaked PCA/Barplot theme and typography (no grid, panel border, larger text) for better visual consistency.
+- **Help popover layout**: Left-aligned help content near file uploads, added table borders, and handled wide tables (horizontal scroll / wrapping).
+
+### 🐛 Fixed
+- Fixed occasional `is.character(txt) is not TRUE` errors for PCA/Heatmap by explicitly using `shiny::validate(shiny::need(...))`.
+- Fixed Heatmap preview/download not working or producing empty output files.
+
+---
+
 ## [0.3.0] - 2025-12-15
 
 ### ✨ Added

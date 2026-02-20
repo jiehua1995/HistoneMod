@@ -4,7 +4,9 @@
 
 depends_check <- function() {
   required_packages <- c(
-    "dplyr","tidyr","ggplot2","ggrepel","ggsignif","viridis","pheatmap","shiny","shinyWidgets","shinycssloaders","shinyjs","shinyalert","DT"
+    "dplyr","tidyr","ggplot2","ggrepel","ggsignif","viridis","pheatmap",
+    "jsonlite","httr","BiocVersion",
+    "shiny","shinyWidgets","shinycssloaders","shinyjs","shinyalert","DT"
   )
   # Install pak if not already installed
   if (!requireNamespace("pak", quietly = TRUE)) {
@@ -14,7 +16,7 @@ depends_check <- function() {
   # Install required packages if not already installed
   for (pkg in required_packages) {
     if (!requireNamespace(pkg, quietly = TRUE)) {
-      pak::pkg_install(pkg)
+        pak::pkg_install(pkg)
     }
   }
   # Load required packages
@@ -144,7 +146,17 @@ percentage_calculation <- function(ms1, sample,
 plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis") {
 
   colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
-  
+
+  if ("Replicate.Name" %in% colnames(data_merge)) {
+    data_merge$Replicate.Name <- as.character(data_merge$Replicate.Name)
+  }
+  if ("Peptide.Note" %in% colnames(data_merge)) {
+    data_merge$Peptide.Note <- as.character(data_merge$Peptide.Note)
+  }
+  if ("Group" %in% colnames(data_merge)) {
+    data_merge$Group <- as.character(data_merge$Group)
+  }
+
 
   wide <- data_merge %>%
     select(Replicate.Name, Peptide.Note, Percentage) %>%
@@ -167,7 +179,7 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis")
   scores <- as.data.frame(pca_res$x)
   
   # Keep Replicate.Name
-  scores$Replicate.Name <- wide$Replicate.Name
+  scores$Replicate.Name <- as.character(wide$Replicate.Name)
   
   # Group
   if ("Group" %in% colnames(data_merge)) {
@@ -194,11 +206,26 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis")
   
   p <- ggplot(scores, aes(x = PC1, y = PC2, color = Group)) +
     geom_point(size = 6) +
-    geom_text_repel(aes(label = Replicate.Name), size = 6, max.overlaps = Inf) +
-    labs(title = "PCA of Replicates",
-         x = paste0("PC1 (", round(variance_explained[1]*100, 1), "%)"),
-         y = paste0("PC2 (", round(variance_explained[2]*100, 1), "%)")) +
-    theme_minimal() +
+    ggrepel::geom_text_repel(aes(label = Replicate.Name),
+                             size = 6,
+                             max.overlaps = Inf,
+                             family = "sans") +
+    labs(
+      title = NULL,
+      x = paste0("PC1 (", round(variance_explained[1] * 100, 1), "%)"),
+      y = paste0("PC2 (", round(variance_explained[2] * 100, 1), "%)")
+    ) +
+    theme_minimal(base_family = "sans") +
+    theme(
+      panel.grid = element_blank(),
+      panel.background = element_rect(fill = "white", color = NA),
+      plot.background = element_rect(fill = "white", color = NA),
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.8, linejoin = "mitre"),
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      legend.title = element_text(size = 16),
+      legend.text = element_text(size = 14)
+    ) +
     color_scale
   
   # Add confidence ellipses if requested and enough samples per group
@@ -221,6 +248,13 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis")
 # ------------------------
 plot_heatmap <- function(data_merge, cluster_rows=TRUE, cluster_cols=TRUE, color_palette="viridis") {
   colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
+
+  if ("Replicate.Name" %in% colnames(data_merge)) {
+    data_merge$Replicate.Name <- as.character(data_merge$Replicate.Name)
+  }
+  if ("Peptide.Note" %in% colnames(data_merge)) {
+    data_merge$Peptide.Note <- as.character(data_merge$Peptide.Note)
+  }
   
   heat_data <- data_merge %>%
     select(Replicate.Name, Peptide.Note, Percentage) %>%
@@ -233,7 +267,7 @@ plot_heatmap <- function(data_merge, cluster_rows=TRUE, cluster_cols=TRUE, color
   
   if(ncol(heat_data) <= 1) stop("Not enough data for heatmap")
   
-  rownames_mat <- heat_data$Peptide.Note
+  rownames_mat <- as.character(heat_data$Peptide.Note)
   heat_mat <- as.matrix(heat_data %>% select(-Peptide.Note))
   rownames(heat_mat) <- rownames_mat
   
@@ -253,20 +287,28 @@ plot_heatmap <- function(data_merge, cluster_rows=TRUE, cluster_cols=TRUE, color
                    "mako" = viridis::mako(100),
                    "turbo" = viridis::turbo(100),
                    viridis::viridis(100))
-  
-  # Plot heatmap
-  pheatmap::pheatmap(heat_mat,
-                     cluster_rows=cluster_rows, cluster_cols=cluster_cols,
-                     color=colors, border_color="grey60",
-                     fontsize_row=10, fontsize_col=10,
-                     main="Peptide Percentage Heatmap")
+
+  # Plot heatmap in the simplest/original way (pheatmap draws as a side effect).
+  p <- pheatmap::pheatmap(
+    heat_mat,
+    cluster_rows = cluster_rows,
+    cluster_cols = cluster_cols,
+    color = colors,
+    fontsize = 12,
+    border_color = "grey50",
+    angle_col = 45,
+    main = "",
+    silent = TRUE
+  )
+
+  p
 }
 
 
 # ------------------------
 # 4. Barplot per protein (single peptide)
 # ------------------------
-plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_signif=TRUE, color_palette="viridis") {
+plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_signif=TRUE, color_palette="viridis", y_limits = NULL) {
   colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
   
   df <- data_merge
@@ -307,11 +349,16 @@ plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_sign
     geom_col(position=position_dodge(width=0.9)) +
     geom_errorbar(aes(ymin=mean_percentage - se, ymax=mean_percentage + se),
                   width=0.2, position=position_dodge(width=0.9)) +
-    labs(title=paste0("Peptide: ", peptide_name), y="Percentage", x="Group") +
-    theme_minimal() +
-    theme(axis.title = element_text(size = 12),axis.text = element_text(size=12),
-      axis.text.x = element_text(angle=45, hjust=1), legend.position="none",
-      plot.title = element_text(size=12)) +
+    labs(title = NULL, y = "Percentage", x = "Group") +
+    theme_minimal(base_family = "sans") +
+    theme(
+      panel.grid = element_blank(),
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "none"
+    ) +
     fill_scale
   
   # Add ANOVA p-value to top-right corner if significance testing is enabled
@@ -334,7 +381,7 @@ plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_sign
         sprintf("ANOVA p = %.4f", anova_pval)
       }
       p <- p + annotate("text", x=Inf, y=Inf, label=anova_text,
-                       hjust=1.1, vjust=1.5, size=3.5, fontface="plain")
+                       hjust=1.1, vjust=1.5, size=6, fontface="plain")
     }
   }
   
@@ -374,8 +421,14 @@ plot_barplot_single <- function(data_merge, protein_name, peptide_name, add_sign
   }
   
   # Set y-axis limits after calculating significance positions
-  y_max <- max(y_max, 100)
-  p <- p + coord_cartesian(ylim = c(0, y_max))
+  auto_y_max <- if(is.finite(y_max) && y_max > 0) y_max else 1
+  plot_ylim <- if(is.null(y_limits) || length(y_limits) != 2 || any(!is.finite(y_limits))) {
+    c(0, auto_y_max)
+  } else {
+    as.numeric(y_limits)
+  }
+  plot_ylim <- sort(plot_ylim)
+  p <- p + coord_cartesian(ylim = plot_ylim)
   
   return(p)
 }
@@ -480,6 +533,65 @@ plot_barplot <- function(data_merge, protein_name=NULL, add_signif=TRUE) {
   
   return(plots)
 }
+
+# ------------------------
+# 5. App version helpers
+# ------------------------
+APP_VERSION <- "0.4.0"
+GITHUB_REPO <- "jiehua1995/HistoneMod"
+
+normalize_version <- function(x) {
+  if(is.null(x) || length(x) == 0) return(NA_character_)
+  x <- as.character(x[1])
+  x <- trimws(x)
+  x <- sub("^v", "", x, ignore.case = TRUE)
+  if(identical(x, "")) return(NA_character_)
+  x
+}
+
+github_latest_release_version <- function(repo) {
+  repo <- as.character(repo)[1]
+  if(is.na(repo) || identical(trimws(repo), "")) return(NA_character_)
+  api_url <- paste0("https://api.github.com/repos/", repo, "/releases/latest")
+
+  # Avoid blocking the UI on slow networks.
+  old_timeout <- getOption("timeout")
+  if(is.null(old_timeout) || !is.finite(old_timeout)) old_timeout <- 60
+  options(timeout = min(5, old_timeout))
+  on.exit(options(timeout = old_timeout), add = TRUE)
+
+  # Prefer httr if available (sets a User-Agent reliably), otherwise fall back to jsonlite.
+  if(requireNamespace("httr", quietly = TRUE)) {
+    resp <- tryCatch(
+      httr::GET(api_url, httr::user_agent("HistoneMod-Shiny"), httr::timeout(5)),
+      error = function(e) NULL
+    )
+    if(!is.null(resp) && httr::status_code(resp) == 200) {
+      parsed <- tryCatch(httr::content(resp, as = "parsed", type = "application/json"), error = function(e) NULL)
+      if(!is.null(parsed) && !is.null(parsed$tag_name)) {
+        return(normalize_version(parsed$tag_name))
+      }
+    }
+  }
+
+  parsed <- tryCatch(jsonlite::fromJSON(api_url), error = function(e) NULL)
+  if(!is.null(parsed) && !is.null(parsed$tag_name)) {
+    return(normalize_version(parsed$tag_name))
+  }
+  NA_character_
+}
+
+get_latest_release_version_cached <- local({
+  checked <- FALSE
+  cached <- NA_character_
+
+  function(repo) {
+    if(isTRUE(checked)) return(cached)
+    checked <<- TRUE
+    cached <<- tryCatch(github_latest_release_version(repo), error = function(e) NA_character_)
+    cached
+  }
+})
 
 # ------------------------
 # 5. Downlod the picture
