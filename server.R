@@ -1652,7 +1652,8 @@ server <- function(input, output, session) {
                       add_signif = input$add_signif,
                       color_palette = input$barplot_palette,
                       y_limits = y_limits,
-                      font_scale = font_scale
+                      font_scale = font_scale,
+                      title_text = peptide
                     )
                     print(p, newpage = FALSE)
                   }, error = function(e) {
