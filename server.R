@@ -1,10 +1,71 @@
 server <- function(input, output, session) {
+
+  plot_error_panel <- function(e) {
+    msg <- conditionMessage(e)
+    cls <- paste(class(e), collapse = ", ")
+    call_txt <- tryCatch(deparse(conditionCall(e)), error = function(err) NA_character_)
+
+    trace_txt <- tryCatch({
+      if (requireNamespace("rlang", quietly = TRUE)) {
+        utils::capture.output(print(rlang::trace_back()))
+      } else {
+        utils::capture.output(print(utils::tail(sys.calls(), 50)))
+      }
+    }, error = function(err) {
+      utils::capture.output(print(utils::tail(sys.calls(), 50)))
+    })
+
+    details <- paste(c(
+      paste0("Error: ", msg),
+      paste0("Class: ", cls),
+      paste0("Call: ", call_txt),
+      "",
+      "Trace:",
+      trace_txt
+    ), collapse = "\n")
+
+    graphics::plot.new()
+    graphics::par(mar = c(1, 1, 1, 1))
+    graphics::text(0, 1, adj = c(0, 1), labels = details, cex = 0.75)
+    invisible(NULL)
+  }
   
   ms1_data <- reactiveVal(NULL)
   sample_data <- reactiveVal(NULL)
   filtered_data <- reactiveVal(NULL)
   current_plot <- reactiveVal(NULL)
   current_plot_type <- reactiveVal(NULL)
+
+  latest_version_val <- reactiveVal(NA_character_)
+  observeEvent(TRUE, {
+    latest_version_val(tryCatch(get_latest_release_version_cached(GITHUB_REPO), error = function(e) NA_character_))
+  }, once = TRUE)
+
+  output$footer_line <- renderUI({
+    current_version <- normalize_version(APP_VERSION)
+    latest_version <- latest_version_val()
+
+    repo_url <- paste0("https://github.com/", GITHUB_REPO)
+
+    version_html <- if(is.na(current_version)) {
+      "Version: unknown"
+    } else if(!is.na(latest_version) && !identical(latest_version, current_version)) {
+      paste0(
+        'Version: <a href="', repo_url, '" target="_blank" style="color:#3b82f6;">', current_version, '</a>',
+        ' | New version available: <a href="', repo_url, '" target="_blank" style="color:#3b82f6;">', latest_version, '</a>'
+      )
+    } else {
+      paste0('Version: <a href="', repo_url, '" target="_blank" style="color:#3b82f6;">', current_version, '</a>')
+    }
+
+    copyright_part <- 'Powered by <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/hua/index.html" target="_blank" style="color:#3b82f6;">Jie Hua</a>, <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/borso/index.html" target="_blank" style="color:#3b82f6;">Dr. Marco Borso</a> and <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/bozdag/index.html" target="_blank" style="color:#3b82f6;">Beyza Bozdağ</a>. Copyright © <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html" target="_blank" style="color:#3b82f6;">Imhof Group</a>'
+
+    tags$p(
+      class = "text-center mb-0",
+      style = "color: #64748b; font-size: 13px;",
+      HTML(paste0(copyright_part, " | ", version_html))
+    )
+  })
   
   # Demo data
   demo_ms1 <- data.frame(
@@ -161,24 +222,61 @@ server <- function(input, output, session) {
   
   # Alerts
   observeEvent(input$ms1_info, {
-    shinyalert("MS1 CSV Description:",
-HTML("Please upload a comma-delimited CSV file with at least these columns, like: <br>" %>%
-paste0("<table border='1' cellpadding='4'><tr><th>Protein Name</th><th>Peptide Note</th><th>Replicate Name</th><th>Total Area MS1 Sum</th><th>Isotope Label Type</th></tr>",
-                        paste0("<tr><td>", demo_ms1$Protein.Name, "</td><td>", demo_ms1$Peptide.Note, "</td><td>", demo_ms1$Replicate.Name, "</td><td>", demo_ms1$Total.Area.MS1.Sum, "</td><td>", demo_ms1$Isotope.Label.Type, "</td></tr>", collapse=""),
-                        "</table>"
-                      )),
+    shinyalert("MS1 CSV table:",
+      HTML(paste0(
+        "<div style='text-align:left; max-width:100%;'>",
+        "Please upload a comma-delimited CSV file with at least these columns, like:<br>",
+        "<div style='overflow-x:auto; max-width:100%;'>",
+        "<table style='border-collapse:collapse; width:100%; border:1px solid #94a3b8; table-layout:fixed;'>",
+        "<tr>",
+        "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Protein Name</th>",
+        "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Peptide Note</th>",
+        "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Replicate Name</th>",
+        "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Total Area MS1 Sum</th>",
+        "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Isotope Label Type</th>",
+        "</tr>",
+        paste0(
+          "<tr>",
+          "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_ms1$Protein.Name, "</td>",
+          "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_ms1$Peptide.Note, "</td>",
+          "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_ms1$Replicate.Name, "</td>",
+          "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_ms1$Total.Area.MS1.Sum, "</td>",
+          "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_ms1$Isotope.Label.Type, "</td>",
+          "</tr>",
+          collapse = ""
+        ),
+        "</table>",
+        "</div>",
+        "</div>"
+      )),
                html=TRUE
     )
   })
   
   observeEvent(input$sample_info, {
-    shinyalert("Sample CSV Description",
-               HTML("Please upload a comma-delimited CSV file with at least these columns, like: <br>" %>%
-                      paste0(
-                        "<table border='1' cellpadding='4'><tr><th>Replicate Name</th><th>Group</th><th>Replicate No</th></tr>",
-                        paste0("<tr><td>", demo_sample$Replicate.Name, "</td><td>", demo_sample$Group, "</td><td>", demo_sample$Replicate.No, "</td></tr>", collapse=""),
-                        "</table>"
-                      )),
+    shinyalert("Sample CSV table:",
+               HTML(paste0(
+                 "<div style='text-align:left; max-width:100%;'>",
+                 "Please upload a comma-delimited CSV file with at least these columns, like:<br>",
+                 "<div style='overflow-x:auto; max-width:100%;'>",
+                 "<table style='border-collapse:collapse; width:100%; border:1px solid #94a3b8; table-layout:fixed;'>",
+                 "<tr>",
+                 "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Replicate Name</th>",
+                 "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Group</th>",
+                 "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Replicate No</th>",
+                 "</tr>",
+                 paste0(
+                   "<tr>",
+                   "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_sample$Replicate.Name, "</td>",
+                   "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_sample$Group, "</td>",
+                   "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_sample$Replicate.No, "</td>",
+                   "</tr>",
+                   collapse = ""
+                 ),
+                 "</table>",
+                 "</div>",
+                 "</div>"
+               )),
                html=TRUE
     )
   })
@@ -219,19 +317,57 @@ paste0("<table border='1' cellpadding='4'><tr><th>Protein Name</th><th>Peptide N
     
     # Check duplicates
     dup_check <- data %>% count(Replicate.Name, Peptide.Note) %>% filter(n > 1)
-    validate(
-      need(nrow(dup_check) == 0, "Check your data, it is wrong or it has duplicated ids. No PCA available now")
+    shiny::validate(
+      shiny::need(nrow(dup_check) == 0, "Check your data, it is wrong or it has duplicated ids. No PCA available now")
     )
     
     plot_pca(data, show_ellipse = input$show_ellipse, color_palette = input$pca_palette)
   })
   
   output$pca_plot <- renderPlot({ 
-    p <- pca_plot_reactive()
-    current_plot(p)
-    current_plot_type("pca")
-    p
+    tryCatch({
+      p <- pca_plot_reactive()
+      current_plot(p)
+      current_plot_type("pca")
+      print(p)
+      invisible(NULL)
+    }, error = function(e) {
+      plot_error_panel(e)
+    })
   })
+
+  output$export_preview_pca <- renderImage({
+    req(input$export_format_pca)
+    req(pca_plot_reactive())
+    req(is.numeric(input$export_width_pca), is.numeric(input$export_height_pca))
+    req(input$export_width_pca > 0, input$export_height_pca > 0)
+
+    export_dpi <- suppressWarnings(as.numeric(input$export_dpi_pca))
+    if(!is.finite(export_dpi) || export_dpi <= 0) export_dpi <- 300
+
+    # Keep preview fast while preserving aspect ratio
+    max_px <- 1600
+    preview_dpi <- min(export_dpi, floor(max_px / max(input$export_width_pca, input$export_height_pca)))
+    if(!is.finite(preview_dpi) || preview_dpi < 72) preview_dpi <- min(export_dpi, 150)
+
+    outfile <- tempfile(fileext = ".png")
+    tryCatch({
+      ggplot2::ggsave(
+        filename = outfile,
+        plot = pca_plot_reactive(),
+        width = input$export_width_pca,
+        height = input$export_height_pca,
+        dpi = preview_dpi,
+        device = "png"
+      )
+    }, error = function(e) {
+      grDevices::png(outfile, width = 8, height = 4, units = "in", res = 150)
+      plot_error_panel(e)
+      grDevices::dev.off()
+    })
+
+    list(src = outfile, contentType = "image/png", alt = "PCA export preview")
+  }, deleteFile = TRUE)
   
   # Export PCA plot
   observeEvent(input$export_pca, {
@@ -242,6 +378,15 @@ paste0("<table border='1' cellpadding='4'><tr><th>Protein Name</th><th>Peptide N
       size = "m",
       easyClose = TRUE,
       div(class="p-3",
+        tags$style(HTML(
+          ".export-preview .shiny-image-output { height: auto !important; }\n",
+          ".export-preview img { max-width: 100%; height: auto; display: block; margin: 0 auto; }\n"
+        )),
+        div(class="mb-3",
+          tags$label(class="form-label fw-bold", "Preview"),
+          div(class = "border rounded p-2 bg-white export-preview", style = "width: 100%;",
+              imageOutput("export_preview_pca", height = "auto"))
+        ),
         div(class="mb-3",
           tags$label(class="form-label fw-bold", "Format"),
           selectInput("export_format_pca", NULL,
@@ -301,17 +446,53 @@ paste0("<table border='1' cellpadding='4'><tr><th>Protein Name</th><th>Peptide N
     
     # Check duplicates
     dup_check <- data %>% count(Replicate.Name, Peptide.Note) %>% filter(n > 1)
-    validate(need(nrow(dup_check) == 0, "Check your data, it is wrong or it has duplicated ids. No Heatmap available now"))
+    shiny::validate(shiny::need(nrow(dup_check) == 0, "Check your data, it is wrong or it has duplicated ids. No Heatmap available now"))
     
     plot_heatmap(data, cluster_rows = input$cluster_rows, cluster_cols = input$cluster_cols, color_palette = input$heatmap_palette)
   })
   
   output$heatmap_plot <- renderPlot({ 
-    p <- heatmap_plot_reactive()
-    current_plot(p)
-    current_plot_type("heatmap")
-    p
+    tryCatch({
+      p <- heatmap_plot_reactive()
+      current_plot(p)
+      current_plot_type("heatmap")
+      grid::grid.newpage()
+      grid::grid.draw(p$gtable)
+      invisible(NULL)
+    }, error = function(e) {
+      plot_error_panel(e)
+    })
   })
+
+  output$export_preview_heatmap <- renderImage({
+    req(input$export_format_hm)
+    req(heatmap_plot_reactive())
+    req(is.numeric(input$export_width_hm), is.numeric(input$export_height_hm))
+    req(input$export_width_hm > 0, input$export_height_hm > 0)
+
+    export_dpi <- suppressWarnings(as.numeric(input$export_dpi_heatmap))
+    if(!is.finite(export_dpi) || export_dpi <= 0) export_dpi <- 300
+
+    max_px <- 1600
+    preview_dpi <- min(export_dpi, floor(max_px / max(input$export_width_hm, input$export_height_hm)))
+    if(!is.finite(preview_dpi) || preview_dpi < 72) preview_dpi <- min(export_dpi, 150)
+
+    outfile <- tempfile(fileext = ".png")
+    tryCatch({
+      grDevices::png(outfile, width = input$export_width_hm, height = input$export_height_hm, units = "in", res = preview_dpi)
+      p <- heatmap_plot_reactive()
+      grid::grid.newpage()
+      grid::grid.draw(p$gtable)
+      grDevices::dev.off()
+    }, error = function(e) {
+      tryCatch(grDevices::dev.off(), error = function(err) NULL)
+      grDevices::png(outfile, width = 8, height = 4, units = "in", res = 150)
+      plot_error_panel(e)
+      grDevices::dev.off()
+    })
+
+    list(src = outfile, contentType = "image/png", alt = "Heatmap export preview")
+  }, deleteFile = TRUE)
   
   # Export Heatmap
   observeEvent(input$export_heatmap, {
@@ -322,6 +503,15 @@ paste0("<table border='1' cellpadding='4'><tr><th>Protein Name</th><th>Peptide N
       size = "m",
       easyClose = TRUE,
       div(class="p-3",
+        tags$style(HTML(
+          ".export-preview .shiny-image-output { height: auto !important; }\n",
+          ".export-preview img { max-width: 100%; height: auto; display: block; margin: 0 auto; }\n"
+        )),
+        div(class="mb-3",
+          tags$label(class="form-label fw-bold", "Preview"),
+          div(class = "border rounded p-2 bg-white export-preview", style = "width: 100%;",
+              imageOutput("export_preview_heatmap", height = "auto"))
+        ),
         div(class="mb-3",
           tags$label(class="form-label fw-bold", "Format"),
           selectInput("export_format_hm", NULL,
@@ -363,30 +553,42 @@ paste0("<table border='1' cellpadding='4'><tr><th>Protein Name</th><th>Peptide N
       paste0("Heatmap_", Sys.Date(), ".", input$export_format_hm)
     },
     content = function(file) {
-      if(input$export_format_hm %in% c("pdf", "svg", "eps")) {
-        if(input$export_format_hm == "pdf") {
-          pdf(file, width = input$export_width_hm, height = input$export_height_hm)
-        } else if(input$export_format_hm == "svg") {
-          svg(file, width = input$export_width_hm, height = input$export_height_hm)
-        } else {
-          setEPS()
-          postscript(file, width = input$export_width_hm, height = input$export_height_hm)
-        }
-        print(heatmap_plot_reactive())
-        dev.off()
-      } else {
-        # For raster formats
-        device_func <- switch(input$export_format_hm,
-                              "png" = png,
-                              "jpeg" = jpeg,
-                              "tiff" = tiff,
-                              "bmp" = bmp,
-                              png)
-        device_func(file, width = input$export_width_hm, height = input$export_height_hm, 
-                    units = "in", res = as.numeric(input$export_dpi_heatmap))
-        print(heatmap_plot_reactive())
-        dev.off()
+      export_plot <- function() {
+        p <- heatmap_plot_reactive()
+        grid::grid.newpage()
+        grid::grid.draw(p$gtable)
+        invisible(NULL)
       }
+
+      tryCatch({
+        if(input$export_format_hm %in% c("pdf", "svg", "eps")) {
+          if(input$export_format_hm == "pdf") {
+            grDevices::pdf(file, width = input$export_width_hm, height = input$export_height_hm)
+          } else if(input$export_format_hm == "svg") {
+            grDevices::svg(file, width = input$export_width_hm, height = input$export_height_hm)
+          } else {
+            grDevices::setEPS()
+            grDevices::postscript(file, width = input$export_width_hm, height = input$export_height_hm)
+          }
+          export_plot()
+          grDevices::dev.off()
+        } else {
+          # For raster formats
+          device_func <- switch(input$export_format_hm,
+                                "png" = grDevices::png,
+                                "jpeg" = grDevices::jpeg,
+                                "tiff" = grDevices::tiff,
+                                "bmp" = grDevices::bmp,
+                                grDevices::png)
+          device_func(file, width = input$export_width_hm, height = input$export_height_hm,
+                      units = "in", res = as.numeric(input$export_dpi_heatmap))
+          export_plot()
+          grDevices::dev.off()
+        }
+      }, error = function(e) {
+        tryCatch(grDevices::dev.off(), error = function(err) NULL)
+        stop(e)
+      })
       removeModal()
     }
   )
@@ -403,12 +605,55 @@ paste0("<table border='1' cellpadding='4'><tr><th>Protein Name</th><th>Peptide N
   current_barplot <- reactive({
     req(filtered_data_reactive(), input$select_protein, input$select_peptide_barplot)
     data <- filtered_data_reactive()
-    plot_barplot_single(data, input$select_protein, input$select_peptide_barplot, add_signif=input$add_signif, color_palette=input$barplot_palette)
+    y_limits <- NULL
+    if(isFALSE(input$barplot_y_auto)) {
+      y_limits <- input$barplot_y_range
+    }
+    plot_barplot_single(
+      data,
+      input$select_protein,
+      input$select_peptide_barplot,
+      add_signif = input$add_signif,
+      color_palette = input$barplot_palette,
+      y_limits = y_limits
+    )
   })
   
   output$barplot_single <- renderPlot({
     current_barplot()
   })
+
+  output$export_preview_barplot <- renderImage({
+    req(input$export_format_bar)
+    req(current_barplot())
+    req(is.numeric(input$export_width_bar), is.numeric(input$export_height_bar))
+    req(input$export_width_bar > 0, input$export_height_bar > 0)
+
+    export_dpi <- suppressWarnings(as.numeric(input$export_dpi_barplot))
+    if(!is.finite(export_dpi) || export_dpi <= 0) export_dpi <- 300
+
+    max_px <- 1600
+    preview_dpi <- min(export_dpi, floor(max_px / max(input$export_width_bar, input$export_height_bar)))
+    if(!is.finite(preview_dpi) || preview_dpi < 72) preview_dpi <- min(export_dpi, 150)
+
+    outfile <- tempfile(fileext = ".png")
+    tryCatch({
+      ggplot2::ggsave(
+        filename = outfile,
+        plot = current_barplot(),
+        width = input$export_width_bar,
+        height = input$export_height_bar,
+        dpi = preview_dpi,
+        device = "png"
+      )
+    }, error = function(e) {
+      grDevices::png(outfile, width = 8, height = 4, units = "in", res = 150)
+      plot_error_panel(e)
+      grDevices::dev.off()
+    })
+
+    list(src = outfile, contentType = "image/png", alt = "Barplot export preview")
+  }, deleteFile = TRUE)
   
   # Export Barplot
   observeEvent(input$export_barplot, {
@@ -419,6 +664,15 @@ paste0("<table border='1' cellpadding='4'><tr><th>Protein Name</th><th>Peptide N
       size = "m",
       easyClose = TRUE,
       div(class="p-3",
+        tags$style(HTML(
+          ".export-preview .shiny-image-output { height: auto !important; }\n",
+          ".export-preview img { max-width: 100%; height: auto; display: block; margin: 0 auto; }\n"
+        )),
+        div(class="mb-3",
+          tags$label(class="form-label fw-bold", "Preview"),
+          div(class = "border rounded p-2 bg-white export-preview", style = "width: 100%;",
+              imageOutput("export_preview_barplot", height = "auto"))
+        ),
         div(class="mb-3",
           tags$label(class="form-label fw-bold", "Format"),
           selectInput("export_format_bar", NULL,
