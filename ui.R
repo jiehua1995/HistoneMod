@@ -283,7 +283,12 @@ ui <- fluidPage(
                    # Download button
                    downloadButton("download_filtered", "Download Wide Format Table",
                                   style="color:white; background-color:#28a745; font-size:20px; 
-                          padding:15px 30px; border-radius:12px; border:none; margin-top:20px;"),
+                      padding:15px 30px; border-radius:12px; border:none; margin-top:20px; width:100%; display:block;"),
+
+                     br(),
+                     downloadButton("download_plots_pdf", "Download Plots as a PDF",
+                        style="color:white; background-color:#3b82f6; font-size:20px; 
+                      padding:15px 30px; border-radius:12px; border:none; margin-top:16px; width:100%; display:block;"),
                    
                    # Download status message
                    br(), br(),

@@ -741,4 +741,273 @@ server <- function(input, output, session) {
       write.csv(wide, file, row.names=FALSE)
     }
   )
+
+  output$download_plots_pdf <- downloadHandler(
+    filename = function() {
+      paste0("HistoneMod_Report_", Sys.Date(), ".pdf")
+    },
+    contentType = "application/pdf",
+    content = function(file) {
+      req(filtered_data_reactive())
+      req(pca_plot_reactive())
+      req(heatmap_plot_reactive())
+
+      draw_page_title <- function(title_text) {
+        grid::grid.text(
+          label = title_text,
+          x = 0.5,
+          y = 0.975,
+          just = c("center", "top"),
+          gp = grid::gpar(fontsize = 18, fontface = "bold", col = "#1e293b")
+        )
+      }
+
+      with_content_viewport <- function(expr) {
+        vp <- grid::viewport(x = 0.5, y = 0.47, width = 0.94, height = 0.86, just = "center")
+        grid::pushViewport(vp)
+        on.exit(grid::popViewport(), add = TRUE)
+        force(expr)
+        invisible(NULL)
+      }
+
+      cover_page <- function() {
+        grid::grid.newpage()
+        grid::grid.rect(gp = grid::gpar(col = NA, fill = "#f8fafc"))
+
+        # Top accent bar
+        grid::grid.rect(
+          x = 0.5, y = 0.93, width = 1, height = 0.14,
+          gp = grid::gpar(col = NA, fill = "#3b82f6")
+        )
+
+        # Logo (optional)
+        logo_path <- normalizePath(file.path("www", "logo.png"), winslash = "/", mustWork = FALSE)
+        if (file.exists(logo_path) && requireNamespace("png", quietly = TRUE)) {
+          img <- tryCatch(png::readPNG(logo_path), error = function(e) NULL)
+          if (!is.null(img)) {
+            grid::grid.raster(img, x = 0.12, y = 0.93, width = 0.12, height = 0.12)
+          }
+        }
+
+        grid::grid.text(
+          "Analysis Report",
+          x = 0.5, y = 0.88,
+          gp = grid::gpar(fontsize = 28, fontface = "bold", col = "white")
+        )
+
+        grid::grid.text(
+          "Histone PTM Quantification",
+          x = 0.5, y = 0.81,
+          gp = grid::gpar(fontsize = 16, fontface = "plain", col = "#1e293b")
+        )
+
+        repo_url <- paste0("https://github.com/", GITHUB_REPO)
+        grid::grid.text(
+          paste0("Tool: HistoneMod (v", normalize_version(APP_VERSION), ")"),
+          x = 0.5, y = 0.76,
+          gp = grid::gpar(fontsize = 12, col = "#334155")
+        )
+        grid::grid.text(
+          paste0("Link: ", repo_url),
+          x = 0.5, y = 0.73,
+          gp = grid::gpar(fontsize = 11, col = "#334155")
+        )
+        grid::grid.text(
+          paste0("Generated on ", as.character(Sys.Date())),
+          x = 0.5, y = 0.69,
+          gp = grid::gpar(fontsize = 12, col = "#334155")
+        )
+
+        df <- filtered_data_reactive()
+        sample_n <- length(unique(df$Replicate.Name))
+        peptide_n <- length(unique(df$Peptide.Note))
+        protein_n <- length(unique(df$Protein.Name))
+
+        grid::grid.rect(
+          x = 0.5, y = 0.56, width = 0.86, height = 0.18,
+          gp = grid::gpar(col = "#cbd5e1", fill = "white", lwd = 1)
+        )
+        grid::grid.text(
+          paste0("Summary: ", protein_n, " proteins | ", peptide_n, " peptides | ", sample_n, " samples"),
+          x = 0.5, y = 0.56,
+          gp = grid::gpar(fontsize = 13, fontface = "bold", col = "#1e293b")
+        )
+
+        # A subtle footer
+        grid::grid.text(
+          "Confidential - For internal use",
+          x = 0.5, y = 0.06,
+          gp = grid::gpar(fontsize = 10, col = "#64748b")
+        )
+      }
+
+      data_source_page <- function() {
+        grid::grid.newpage()
+        draw_page_title("Data Source")
+
+        ms1_name <- if(!is.null(input$ms1_file)) input$ms1_file$name else NA_character_
+        ms1_path <- if(!is.null(input$ms1_file)) input$ms1_file$datapath else NA_character_
+        sample_name <- if(!is.null(input$sample_file)) input$sample_file$name else NA_character_
+        sample_path <- if(!is.null(input$sample_file)) input$sample_file$datapath else NA_character_
+
+        df <- filtered_data_reactive()
+        group_n <- if("Group" %in% names(df)) length(unique(df$Group)) else NA_integer_
+
+        y_axis_mode <- if(isTRUE(input$barplot_y_auto)) "Auto" else "Manual"
+        y_axis_range <- if(isTRUE(input$barplot_y_auto)) NA_character_ else paste0("[", paste(input$barplot_y_range, collapse = ", "), "]")
+
+        lines <- c(
+          paste0("Generated on: ", as.character(Sys.Date())),
+          paste0("App version: ", normalize_version(APP_VERSION)),
+          "",
+          "Input files (Note: browsers do not expose the original local file path; 'Path' is the temporary server path):",
+          paste0("- MS1 file name: ", ms1_name),
+          paste0("  Path: ", ms1_path),
+          paste0("- Sample file name: ", sample_name),
+          paste0("  Path: ", sample_path),
+          "",
+          "Dataset overview:",
+          paste0("- Proteins: ", length(unique(df$Protein.Name))),
+          paste0("- Peptides: ", length(unique(df$Peptide.Note))),
+          paste0("- Samples (Replicate.Name): ", length(unique(df$Replicate.Name))),
+          if(!is.na(group_n)) paste0("- Groups: ", group_n) else "- Groups: (not available)",
+          "",
+          "Key options:",
+          paste0("- Exclude unmodified peptides: ", if(isTRUE(input$exclude_un)) "Yes" else "No"),
+          paste0("- PCA palette: ", input$pca_palette),
+          paste0("- Heatmap palette: ", input$heatmap_palette),
+          paste0("- Heatmap clustering (rows/cols): ", if(isTRUE(input$cluster_rows)) "On" else "Off", " / ", if(isTRUE(input$cluster_cols)) "On" else "Off"),
+          paste0("- Barplot palette: ", input$barplot_palette),
+          paste0("- Barplot significance stars: ", if(isTRUE(input$add_signif)) "On" else "Off"),
+          paste0("- Barplot Y-axis mode: ", y_axis_mode),
+          if(!is.na(y_axis_range)) paste0("- Barplot Y-axis range: ", y_axis_range) else NULL
+        )
+
+        with_content_viewport({
+          grid::grid.text(
+            paste(lines, collapse = "\n"),
+            x = 0.02, y = 0.98,
+            just = c("left", "top"),
+            gp = grid::gpar(fontsize = 11, col = "#0f172a")
+          )
+        })
+      }
+
+      pca_page <- function() {
+        grid::grid.newpage()
+        draw_page_title("PCA")
+        with_content_viewport({
+          p <- pca_plot_reactive()
+          print(p, newpage = FALSE)
+        })
+      }
+
+      heatmap_page <- function() {
+        grid::grid.newpage()
+        draw_page_title("Heatmap")
+        with_content_viewport({
+          p <- heatmap_plot_reactive()
+          grid::grid.draw(p$gtable)
+        })
+      }
+
+      barplot_pages <- function() {
+        df <- filtered_data_reactive()
+        proteins <- sort(unique(df$Protein.Name))
+        plots_per_page <- 6
+        ncols <- 2
+        nrows <- 3
+
+        # Pre-calculate total pages for progress reporting
+        page_count <- 0
+        for (protein in proteins) {
+          peptides <- unique(df$Peptide.Note[df$Protein.Name == protein])
+          if (length(peptides) == 0) next
+          page_count <- page_count + ceiling(length(peptides) / plots_per_page)
+        }
+        progress_step <- 0.45 / max(1, page_count)
+
+        y_limits <- NULL
+        if (isFALSE(input$barplot_y_auto)) {
+          y_limits <- input$barplot_y_range
+        }
+
+        for (protein in proteins) {
+          peptides <- unique(df$Peptide.Note[df$Protein.Name == protein])
+          peptides <- sort(peptides)
+
+          if (length(peptides) == 0) next
+          chunks <- split(peptides, ceiling(seq_along(peptides) / plots_per_page))
+          total_pages <- length(chunks)
+
+          for (page_idx in seq_along(chunks)) {
+            grid::grid.newpage()
+            draw_page_title(paste0("Barplots: ", protein, " (", page_idx, "/", total_pages, ")"))
+
+            with_content_viewport({
+              local({
+                grid::pushViewport(grid::viewport(layout = grid::grid.layout(nrows, ncols)))
+                on.exit(grid::popViewport(), add = TRUE)
+
+                page_peptides <- chunks[[page_idx]]
+                for (k in seq_along(page_peptides)) {
+                  r <- ceiling(k / ncols)
+                  c <- ((k - 1) %% ncols) + 1
+                  peptide <- page_peptides[[k]]
+                  p <- plot_barplot_single(
+                    df,
+                    protein_name = protein,
+                    peptide_name = peptide,
+                    add_signif = input$add_signif,
+                    color_palette = input$barplot_palette,
+                    y_limits = y_limits
+                  )
+                  print(p, newpage = FALSE, vp = grid::viewport(layout.pos.row = r, layout.pos.col = c))
+                }
+              })
+            })
+
+            shiny::incProgress(progress_step, detail = paste0("Barplots: ", protein, " (", page_idx, "/", total_pages, ")"))
+          }
+        }
+      }
+
+      # Generate PDF
+      grDevices::pdf(file = file, width = 8.27, height = 11.69, onefile = TRUE)
+      on.exit(tryCatch(grDevices::dev.off(), error = function(e) NULL), add = TRUE)
+
+      tryCatch({
+        shiny::withProgress(message = "Generating PDF report...", value = 0, {
+          shiny::incProgress(0.05, detail = "Cover")
+          cover_page()
+
+          shiny::incProgress(0.10, detail = "Data source")
+          data_source_page()
+
+          shiny::incProgress(0.15, detail = "PCA")
+          pca_page()
+
+          shiny::incProgress(0.15, detail = "Heatmap")
+          heatmap_page()
+
+          shiny::incProgress(0.05, detail = "Barplots")
+          barplot_pages()
+
+          shiny::incProgress(0.05, detail = "Done")
+        })
+      }, error = function(e) {
+        # If anything fails, write an error page to the PDF instead of returning an HTML error.
+        grid::grid.newpage()
+        draw_page_title("Report generation failed")
+        with_content_viewport({
+          msg <- paste(c(
+            "An error occurred while generating the PDF report.",
+            "",
+            paste0("Error: ", conditionMessage(e))
+          ), collapse = "\n")
+          grid::grid.text(msg, x = 0.02, y = 0.98, just = c("left", "top"), gp = grid::gpar(fontsize = 12, col = "#0f172a"))
+        })
+      })
+    }
+  )
 }

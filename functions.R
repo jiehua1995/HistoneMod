@@ -5,6 +5,7 @@
 depends_check <- function() {
   required_packages <- c(
     "dplyr","tidyr","ggplot2","ggrepel","ggsignif","viridis","pheatmap",
+    "png",
     "jsonlite","httr","BiocVersion",
     "shiny","shinyWidgets","shinycssloaders","shinyjs","shinyalert","DT"
   )
