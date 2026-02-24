@@ -1,5 +1,7 @@
 # HistoneMod: Histone Post-translational Modifications Quantification Tool
 
+## ⭐ If you find this repository useful for your research, please consider giving it a star!
+
 [![Version](https://img.shields.io/badge/version-0.5.1-blue.svg)](CHANGELOG.md)
 [![R](https://img.shields.io/badge/R-%3E%3D%204.0-brightgreen.svg)](https://www.r-project.org/)
 
