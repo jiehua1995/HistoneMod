@@ -4,6 +4,17 @@
 
 [![Version](https://img.shields.io/badge/version-0.5.1-blue.svg)](CHANGELOG.md)
 [![R](https://img.shields.io/badge/R-%3E%3D%204.0-brightgreen.svg)](https://www.r-project.org/)
+![Shiny](https://img.shields.io/badge/framework-Shiny-1f77b4)
+![GitHub contributors](https://img.shields.io/github/contributors/jiehua1995/HistoneMod)
+![GitHub last commit](https://img.shields.io/github/last-commit/jiehua1995/HistoneMod)
+![GitHub repo size](https://img.shields.io/github/repo-size/jiehua1995/HistoneMod)
+[![Live Demo](https://img.shields.io/badge/demo-online-brightgreen)](https://jiehua.shinyapps.io/HistoneMod/)
+
+![Bioinformatics](https://img.shields.io/badge/field-Bioinformatics-green)
+![Proteomics](https://img.shields.io/badge/data-Proteomics-orange)
+![Histone PTM](https://img.shields.io/badge/analysis-Histone%20PTM-red)
+![Maintained](https://img.shields.io/badge/status-actively%20maintained-brightgreen)
+
 
 A Shiny application for **quantitative analysis of histone post-translational modifications (PTMs)**. This tool provides researchers with a tool for processing, filtering, visualizing, and analyzing peptide-level data exported from Skyline.
 
