@@ -2,7 +2,7 @@
 # This file wires the UI to computation: validation, reactivity, plot rendering,
 # export modals (with fixed-size preview + zoom), and PDF report generation.
 
-server <- function(input, output, session) {
+histonemod_server <- function(input, output, session) {
 
   ##### Export Settings (Persisted Across Modals) #####
   # CUSTOMIZE: Default export width/height/dpi for each plot type.
@@ -1426,7 +1426,7 @@ server <- function(input, output, session) {
         grid::grid.rect(gp = grid::gpar(col = NA, fill = "white"))
 
         # Logo (optional) - keep original aspect ratio
-        logo_path <- normalizePath(file.path("www", "logo.png"), winslash = "/", mustWork = FALSE)
+        logo_path <- histonemod_logo_path()
         if (file.exists(logo_path) && requireNamespace("png", quietly = TRUE)) {
           img <- tryCatch(png::readPNG(logo_path), error = function(e) NULL)
           if (!is.null(img)) {

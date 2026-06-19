@@ -1,107 +1,101 @@
 # HistoneMod: Histone Post-translational Modifications Quantification Tool
 
-## ⭐ If you find this repository useful for your research, please consider giving it a star!
+## If you find this repository useful for your research, please consider giving it a star
 
-[![Version](https://img.shields.io/badge/version-0.5.1-blue.svg)](CHANGELOG.md)
-[![R](https://img.shields.io/badge/R-%3E%3D%204.0-brightgreen.svg)](https://www.r-project.org/)
+![Version](https://img.shields.io/badge/version-0.5.1-blue.svg)
+[![R](https://img.shields.io/badge/R-%3E%3D%204.1-brightgreen.svg)](https://www.r-project.org/)
+![Shiny](https://img.shields.io/badge/framework-Shiny-1f77b4)
+![GitHub contributors](https://img.shields.io/github/contributors/jiehua1995/HistoneMod)
+![GitHub last commit](https://img.shields.io/github/last-commit/jiehua1995/HistoneMod)
+![GitHub repo size](https://img.shields.io/github/repo-size/jiehua1995/HistoneMod)
 
-A Shiny application for **quantitative analysis of histone post-translational modifications (PTMs)**. This tool provides researchers with a tool for processing, filtering, visualizing, and analyzing peptide-level data exported from Skyline.
+![Bioinformatics](https://img.shields.io/badge/field-Bioinformatics-green)
+![Proteomics](https://img.shields.io/badge/data-Proteomics-orange)
+![Histone PTM](https://img.shields.io/badge/analysis-Histone%20PTM-red)
+![Maintained](https://img.shields.io/badge/status-actively%20maintained-brightgreen)
 
-## 🌐 Live Demo
+`HistoneMod` is an installable R package that provides a Shiny application for **quantitative analysis of histone post-translational modifications (PTMs)**. It is designed for processing, filtering, visualizing, and exporting peptide-level data exported from Skyline.
 
-Access the application online via shinyapps.io:
+## Key Features
 
-| Version | Features | Link |
-|---------|----------|------|
-| **Full** | Complete functionality with advanced filtering, customizable visualizations, high-resolution plot exports | [🚀 Launch Full Version](https://jiehua.shinyapps.io/HistoneMod/) |
-| **Tiny** | Lightweight version with core features for quick analysis | [⚡ Launch Tiny Version](https://jiehua.shinyapps.io/HistomeModShiny/) |
+### Data Upload and Validation
+- Import peptide-level tables directly from Skyline in CSV format
+- Validate MS1 and sample annotation files before analysis
 
-> **Note**: The full version offers more customization options and features but requires additional computational resources and memory. Due to limit of free shinyapps.io accounts, the app may take some time (more than 3 min) to start if it has been idle or it will be temporarily unavailable during peak times. 
-> For best performance, consider running the application locally. If you have to use online version to quickly check the data, please use the tiny version.
+### Advanced Filtering
+- Select peptide modifications of interest
+- Filter samples by experimental group or replicate
+- Exclude or include unmodified peptides
 
-## ✨ Key Features
+### Rich Visualizations
+- PCA plot for dimensionality reduction and sample clustering
+- Heatmap for peptide abundance patterns
+- Barplots for individual peptide-level comparisons
 
-### 📤 Data Upload & Validation
-- Import peptide-level tables directly from Skyline (CSV format)
+### Data Export
+- Download filtered datasets in wide-format CSV
+- Export plots in multiple formats
+- Generate a quick PDF report
 
-### 🔍 Advanced Filtering
-- **Peptide Selection**: Choose specific modifications or peptides of interest
-- **Sample Selection**: Filter by experimental groups or individual replicates
-- **Unmodified Peptides**: Option to exclude or include unmodified peptides
+### Modern UI
+- Clean Shiny interface for interactive exploration
 
-### 📊 Rich Visualizations
-- **PCA Plot**: Dimensionality reduction and sample clustering analysis
-- **Heatmap**: Hierarchical clustering of peptide intensity patterns
-- **Barplots**: Detailed visualization of individual peptides
+## Installation
 
-### 💾 Data Export
-- Download filtered datasets in wide format (CSV)
-- Export high-resolution plots (PNG, JPEG, PDF)
-- Customizable figure dimensions and resolution
+`HistoneMod` is not on CRAN yet. Please install it directly from GitHub with `remotes`.
 
-### 🎨 Modern UI/UX
-- Clean, responsive design with Tailwind CSS
+```r
+install.packages("remotes")
+remotes::install_github("jiehua1995/HistoneMod", subdir = "HistoneMod", dependencies = TRUE)
+```
 
-## 🚀 Quick Start
+If you already cloned this repository locally, you can also install from the package directory:
 
-### Online Usage
-Simply visit the [live demo links](#-live-demo) above - no installation required!
+```r
+remotes::install_local("HistoneMod", dependencies = TRUE)
+```
 
-### Local Installation
+## Launch
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/jiehua1995/HistoneMod.git
-   cd HistoneMod
-   ```
+After installation, start the app with:
 
-2. **Install dependencies**
-   
-   Choose one of the following methods:
-   
-   **Option A: Using renv (Recommended)**
-   ```r
-   # Restore the exact package versions from renv.lock
-   renv::restore()
-   ```
-   
-   **Option B: Using the dependency checker**
-   ```r
-   # Automatically install all required packages
-   source("functions.R")
-   depends_check()
-   ```
+```r
+HistoneMod::runHistoneMod()
+```
 
-3. **Run the application**
-   
-   Open `app.R` in RStudio and click the **Run App** button, or run:
-   ```r
-   shiny::runApp()
-   ```
+You can also build the application object directly:
 
-**Tip**: Use the built-in help buttons (?) in the application for detailed format examples.
+```r
+app <- HistoneMod::histonemod_app()
+shiny::runApp(app)
+```
 
-## 👥 Authors & Contributors
+## Input Files
 
-- **Jie Hua** – Package developer and maintainer  
-- **Dr. Marco Borso** – Contributor (code review / testing)  
-- **Beyza Bozdağ** – Contributor (code review / testing)  
-- **Prof. Dr. Axel Imhof** – Supervisor
+The application expects two CSV files:
+
+1. `MS1 file`
+   Contains peptide-level quantitative data with required columns such as:
+   `Protein.Name`, `Peptide.Note`, `Replicate.Name`, `Total.Area.MS1`, and `Isotope.Label.Type`.
+
+2. `Sample file`
+   Contains sample annotation data with required columns such as:
+   `Replicate.Name`, `Group`, and `Replicate.No`.
+
+Use the in-app help buttons for concrete file format examples.
+
+## Authors and Contributors
+
+- **Jie Hua** - Package developer and maintainer
+- **Dr. Marco Borso** - Contributor
+- **Beyza Bozdag** - Contributor
+- **Prof. Dr. Axel Imhof** - Supervisor
 
 **Group**: [Imhof Laboratory](https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html)  
 **Institution**: Ludwig Maximilian University of Munich
 
-## 🐛 Bug Reports & Feature Requests
+## Bug Reports and Feature Requests
 
-If you encounter any issues or have suggestions for improvements, please:
-1. Check existing [issues](https://github.com/yourusername/HistoneMod/issues)
-2. Create a new issue with detailed description
-3. Or contact the development team directly
+If you encounter any issues or have suggestions for improvements, please open an issue:
 
-<div align="center">
-  
-**[⬆ Back to Top](#histonemod-histone-post-translational-modifications-quantification-tool)**
-
-Made with ❤️ by the Imhof Group
-
-</div>
+- [GitHub Issues](https://github.com/jiehua1995/HistoneMod/issues)

@@ -13,7 +13,7 @@ depends_check <- function() {
   required_packages <- c(
     "dplyr","tidyr","ggplot2","ggrepel","ggsignif","viridis","pheatmap",
     "png","ragg","svglite",
-    "jsonlite","httr","BiocVersion",
+    "jsonlite","httr",
     "shiny","shinyWidgets","shinycssloaders","shinyjs","shinyalert","DT"
   )
 

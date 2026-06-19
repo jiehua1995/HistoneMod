@@ -1,0 +1,36 @@
+Package: HistoneMod
+Type: Package
+Title: Quantification of Histone Post-Translational Modifications
+Version: 0.5.2
+Authors@R: c(
+    person("Jie", "Hua", email = "jie.Hua@bmc.med.lmu.de", role = c("aut", "cre")),
+    person("Marco", "Borso", role = "ctb"),
+    person("Beyza", "Bozdag", role = "ctb"),
+    person("Axel", "Imhof", role = "ths")
+    )
+Description: Provides an installable Shiny application for quantitative
+    analysis of histone post-translational modifications from Skyline-like
+    peptide-level CSV exports. The package validates input tables, computes
+    relative peptide abundances, and offers interactive PCA, heatmap, barplot,
+    data export, and quick PDF report workflows.
+License: GPL-3
+URL: https://github.com/jiehua1995/HistoneMod
+BugReports: https://github.com/jiehua1995/HistoneMod/issues
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports:
+    DT,
+    dplyr,
+    ggplot2,
+    ggsignif,
+    httr,
+    jsonlite,
+    pheatmap,
+    shiny,
+    shinyalert,
+    shinycssloaders,
+    shinyjs,
+    shinyWidgets,
+    tidyr,
+    viridis
+Config/roxygen2/version: 8.0.0
