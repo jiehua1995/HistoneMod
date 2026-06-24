@@ -2,6 +2,16 @@
 # This file wires the UI to computation: validation, reactivity, plot rendering,
 # export modals (with fixed-size preview + zoom), and PDF report generation.
 
+#' HistoneMod Shiny Server Function
+#'
+#' Implements the server-side logic for the HistoneMod application, including
+#' file validation, percentage calculation, plotting, data export, and PDF
+#' report generation.
+#'
+#' @param input,output,session Standard Shiny server function arguments.
+#'
+#' @return No return value. Called for its side effects in a Shiny app.
+#' @export
 histonemod_server <- function(input, output, session) {
 
   ##### Export Settings (Persisted Across Modals) #####

@@ -2,16 +2,16 @@
 % Please edit documentation in R/histonemod-app.R
 \name{runHistoneMod}
 \alias{runHistoneMod}
-\title{Launch the HistoneMod Shiny application.}
+\title{Launch the HistoneMod Shiny application}
 \usage{
 runHistoneMod(...)
 }
 \arguments{
-\item{...}{Additional arguments passed to [shiny::runApp()].}
+\item{...}{Additional arguments passed to \code{\link[shiny:runApp]{shiny::runApp()}}.}
 }
 \value{
-Invisibly returns the value from [shiny::runApp()].
+Invisibly returns the value from \code{\link[shiny:runApp]{shiny::runApp()}}.
 }
 \description{
-Launch the HistoneMod Shiny application.
+Launch the HistoneMod Shiny application
 }

@@ -9,31 +9,55 @@
 # 0. Prepare environment
 # ------------------------
 
+#' Check Whether HistoneMod Dependencies Are Available
+#'
+#' Validates that the packages declared in `DESCRIPTION` are installed and
+#' available to the current R session. This is mainly a diagnostic helper; when
+#' HistoneMod is installed normally, these dependencies should already be pulled
+#' in automatically.
+#'
+#' @return Invisibly returns `TRUE` when all required packages are available.
+#'   Throws an error listing missing packages otherwise.
+#' @export
 depends_check <- function() {
-  required_packages <- c(
-    "dplyr","tidyr","ggplot2","ggrepel","ggsignif","viridis","pheatmap",
-    "png","ragg","svglite",
-    "jsonlite","httr",
-    "shiny","shinyWidgets","shinycssloaders","shinyjs","shinyalert","DT"
+  desc_fields <- tryCatch(
+    utils::packageDescription("HistoneMod", fields = c("Depends", "Imports")),
+    error = function(e) NULL
   )
 
-  # CUSTOMIZE: If you want stricter version pinning, prefer renv.lock management
-  # instead of editing this function.
-  # Install pak if not already installed
-  if (!requireNamespace("pak", quietly = TRUE)) {
-    install.packages("pak")
+  required_packages <- character(0)
+  if (!is.null(desc_fields)) {
+    fields <- unname(unlist(desc_fields, use.names = FALSE))
+    fields <- fields[!is.na(fields)]
+    parsed <- trimws(unlist(strsplit(paste(fields, collapse = ","), ",")))
+    parsed <- sub("\\s*\\(.*\\)$", "", parsed)
+    parsed <- parsed[nzchar(parsed)]
+    required_packages <- setdiff(unique(parsed), "R")
   }
-  library(pak)
-  # Install required packages if not already installed
-  for (pkg in required_packages) {
-    if (!requireNamespace(pkg, quietly = TRUE)) {
-        pak::pkg_install(pkg)
-    }
+
+  if (length(required_packages) == 0) {
+    required_packages <- c(
+      "DT", "dplyr", "ggplot2", "ggrepel", "ggsignif", "httr",
+      "jsonlite", "pheatmap", "png", "shiny", "shinyalert",
+      "shinycssloaders", "shinyjs", "shinyWidgets", "svglite",
+      "tidyr", "viridis"
+    )
   }
-  # Load required packages
-  for (pkg in required_packages) {
-    library(pkg, character.only = TRUE)
+
+  missing_packages <- required_packages[
+    !vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)
+  ]
+
+  if (length(missing_packages) > 0) {
+    stop(
+      "Missing required packages: ",
+      paste(missing_packages, collapse = ", "),
+      ". Reinstall HistoneMod so its Imports are installed automatically.",
+      call. = FALSE
+    )
   }
+
+  invisible(TRUE)
 }
 
 ##### Input File Validation #####
@@ -41,6 +65,16 @@ depends_check <- function() {
 # ------------------------
 # File Validation Functions
 # ------------------------
+#' Validate an MS1 CSV File
+#'
+#' Checks that an MS1 CSV export can be read, contains the required columns, and
+#' is not empty.
+#'
+#' @param file_path Path to the MS1 CSV file.
+#'
+#' @return A list with at least `valid` and `message`. When validation succeeds,
+#'   the returned list also contains the parsed data frame in `data`.
+#' @export
 validate_ms1_file <- function(file_path) {
   tryCatch({
     df <- read.csv(file_path)
@@ -70,6 +104,16 @@ validate_ms1_file <- function(file_path) {
   })
 }
 
+#' Validate a Sample Annotation CSV File
+#'
+#' Checks that a sample annotation CSV file can be read, contains the required
+#' columns, and is not empty.
+#'
+#' @param file_path Path to the sample CSV file.
+#'
+#' @return A list with at least `valid` and `message`. When validation succeeds,
+#'   the returned list also contains the parsed data frame in `data`.
+#' @export
 validate_sample_file <- function(file_path) {
   tryCatch({
     df <- read.csv(file_path)
@@ -104,6 +148,24 @@ validate_sample_file <- function(file_path) {
 # ------------------------
 # 1. percentage_calculation
 # ------------------------
+#' Calculate Relative Peptide Percentages
+#'
+#' Merges MS1 and sample tables, keeps light peptides, computes within-protein
+#' relative abundances, and optionally filters unmodified peptides, peptide
+#' selections, and sample selections.
+#'
+#' @param ms1 A data frame containing peptide-level MS1 measurements.
+#' @param sample A data frame containing sample metadata.
+#' @param exclude_un Logical; if `TRUE`, excludes peptide names ending in
+#'   `"un"` or `"unun"`.
+#' @param selected_peptides Optional character vector of peptide names to keep.
+#' @param selected_samples Optional character vector of sample names to keep.
+#' @param max_percentage Numeric upper bound used to filter implausible
+#'   percentage values.
+#'
+#' @return A processed data frame with merged metadata and a `Percentage`
+#'   column.
+#' @export
 percentage_calculation <- function(ms1, sample,
                                    exclude_un = TRUE,
                                    selected_peptides = NULL,
@@ -163,6 +225,20 @@ percentage_calculation <- function(ms1, sample,
 # ------------------------
 # 2. PCA plot
 # ------------------------
+#' Plot PCA Scores
+#'
+#' Builds a PCA score plot from the processed HistoneMod percentage table.
+#'
+#' @param data_merge A processed data frame containing at least
+#'   `Replicate.Name`, `Peptide.Note`, and `Percentage`.
+#' @param show_ellipse Logical; if `TRUE`, draws 95 percent confidence ellipses
+#'   for groups with enough samples.
+#' @param color_palette Character palette name. Supported values are
+#'   `"viridis"`, `"magma"`, `"plasma"`, `"inferno"`, `"cividis"`,
+#'   `"rocket"`, `"mako"`, and `"turbo"`.
+#'
+#' @return A `ggplot` object.
+#' @export
 plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis") {
 
   colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
@@ -269,6 +345,24 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis")
 # ------------------------
 # 3. Heatmap plot
 # ------------------------
+#' Plot a Heatmap
+#'
+#' Converts the processed HistoneMod percentage table into a peptide-by-sample
+#' matrix and renders a heatmap with `pheatmap`.
+#'
+#' @param data_merge A processed data frame containing at least
+#'   `Replicate.Name`, `Peptide.Note`, and `Percentage`.
+#' @param cluster_rows Logical; whether peptides should be clustered.
+#' @param cluster_cols Logical; whether samples should be clustered.
+#' @param color_palette Character palette name. Supported values are
+#'   `"viridis"`, `"magma"`, `"plasma"`, `"inferno"`, `"cividis"`,
+#'   `"rocket"`, `"mako"`, and `"turbo"`.
+#' @param fontsize Base font size passed to `pheatmap`.
+#' @param fontsize_row Optional row label font size.
+#' @param fontsize_col Optional column label font size.
+#'
+#' @return A `pheatmap` result object.
+#' @export
 plot_heatmap <- function(
   data_merge,
   cluster_rows = TRUE,
@@ -357,6 +451,25 @@ plot_heatmap <- function(
 # ------------------------
 # 4. Barplot per protein (single peptide)
 # ------------------------
+#' Plot a Single-Peptide Barplot
+#'
+#' Summarises peptide percentages by group and renders a single barplot with
+#' optional significance testing.
+#'
+#' @param data_merge A processed data frame returned by
+#'   [percentage_calculation()].
+#' @param protein_name Optional protein identifier used to subset the data.
+#' @param peptide_name Peptide identifier to plot.
+#' @param add_signif Logical; whether to add significance labels.
+#' @param color_palette Character palette name. Supported values are
+#'   `"viridis"`, `"magma"`, `"plasma"`, `"inferno"`, `"cividis"`,
+#'   `"rocket"`, `"mako"`, and `"turbo"`.
+#' @param y_limits Optional numeric vector of length 2 for the y-axis range.
+#' @param font_scale Numeric multiplier used to scale plot text.
+#' @param title_text Optional custom plot title.
+#'
+#' @return A `ggplot` object.
+#' @export
 plot_barplot_single <- function(
   data_merge,
   protein_name,
@@ -520,9 +633,19 @@ plot_barplot_single <- function(
 # ------------------------
 # 5. App version helpers
 # ------------------------
-APP_VERSION <- "0.5.1"
+APP_VERSION <- "0.5.2"
 GITHUB_REPO <- "jiehua1995/HistoneMod"
 
+#' Normalize a Version String
+#'
+#' Trims whitespace, removes a leading `v`, and returns a scalar character
+#' version string.
+#'
+#' @param x A version-like object.
+#'
+#' @return A length-one character vector, or `NA_character_` when the input does
+#'   not contain a usable version.
+#' @export
 normalize_version <- function(x) {
   if(is.null(x) || length(x) == 0) return(NA_character_)
   x <- as.character(x[1])
@@ -532,6 +655,15 @@ normalize_version <- function(x) {
   x
 }
 
+#' Query the Latest GitHub Release Version
+#'
+#' Fetches the latest release tag for a GitHub repository and normalizes it to a
+#' plain version string.
+#'
+#' @param repo Repository slug in `"owner/repo"` format.
+#'
+#' @return A normalized version string, or `NA_character_` if the lookup fails.
+#' @export
 github_latest_release_version <- function(repo) {
   repo <- as.character(repo)[1]
   if(is.na(repo) || identical(trimws(repo), "")) return(NA_character_)
@@ -585,12 +717,32 @@ get_latest_release_version_cached <- local({
 # ------------------------
 
 # Download_UI
+#' Build a Plot Download Module UI
+#'
+#' Creates a namespaced download button for the legacy reusable plot download
+#' module.
+#'
+#' @param id Module id.
+#' @param label Button label.
+#'
+#' @return A Shiny UI element.
+#' @export
 downloadPlotUI <- function(id, label = "Download Plot") {
   ns <- NS(id)
   downloadButton(ns("download"), label)
 }
 
 # Download_server
+#' Register a Plot Download Module Server
+#'
+#' Registers server logic for a simple plot download module.
+#'
+#' @param id Module id.
+#' @param plot_reactive A reactive expression returning a plot object.
+#' @param filename_prefix Prefix used for the downloaded file name.
+#'
+#' @return The result of [shiny::moduleServer()].
+#' @export
 downloadPlotServer <- function(id, plot_reactive, filename_prefix = "plot") {
   moduleServer(id, function(input, output, session) {
     output$download <- downloadHandler(

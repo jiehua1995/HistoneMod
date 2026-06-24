@@ -1,6 +1,11 @@
 ##### HistoneMod Shiny UI #####
 # This file wraps the application UI as a package function.
 
+#' Build the HistoneMod User Interface
+#'
+#' Creates the top-level Shiny UI for the HistoneMod application.
+#'
+#' @return A Shiny UI definition.
 histonemod_ui <- function() {
   .register_histonemod_resources()
 

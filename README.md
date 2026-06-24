@@ -2,7 +2,7 @@
 
 ## If you find this repository useful for your research, please consider giving it a star
 
-![Version](https://img.shields.io/badge/version-0.5.1-blue.svg)
+![Version](https://img.shields.io/badge/version-0.6.1-blue.svg)
 [![R](https://img.shields.io/badge/R-%3E%3D%204.1-brightgreen.svg)](https://www.r-project.org/)
 ![Shiny](https://img.shields.io/badge/framework-Shiny-1f77b4)
 ![GitHub contributors](https://img.shields.io/github/contributors/jiehua1995/HistoneMod)
@@ -46,13 +46,19 @@
 
 ```r
 install.packages("remotes")
-remotes::install_github("jiehua1995/HistoneMod", subdir = "HistoneMod", dependencies = TRUE)
+remotes::install_github("jiehua1995/HistoneMod", dependencies = TRUE)
 ```
 
 If you already cloned this repository locally, you can also install from the package directory:
 
 ```r
 remotes::install_local("HistoneMod", dependencies = TRUE)
+```
+
+After installation, open the tutorial vignette with:
+
+```r
+vignette("my-tutorial", package = "HistoneMod")
 ```
 
 ## Launch

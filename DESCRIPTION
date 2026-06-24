@@ -1,7 +1,7 @@
 Package: HistoneMod
 Type: Package
 Title: Quantification of Histone Post-Translational Modifications
-Version: 0.5.2
+Version: 0.6.1
 Authors@R: c(
     person("Jie", "Hua", email = "jie.Hua@bmc.med.lmu.de", role = c("aut", "cre")),
     person("Marco", "Borso", role = "ctb"),
@@ -22,15 +22,24 @@ Imports:
     DT,
     dplyr,
     ggplot2,
+    ggrepel,
     ggsignif,
     httr,
     jsonlite,
     pheatmap,
+    png,
     shiny,
     shinyalert,
     shinycssloaders,
     shinyjs,
     shinyWidgets,
+    svglite,
     tidyr,
     viridis
+Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.0.0
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 7.3.3

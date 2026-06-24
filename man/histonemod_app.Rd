@@ -2,13 +2,13 @@
 % Please edit documentation in R/histonemod-app.R
 \name{histonemod_app}
 \alias{histonemod_app}
-\title{Build the HistoneMod Shiny application object.}
+\title{Build the HistoneMod Shiny application object}
 \usage{
 histonemod_app()
 }
 \value{
-A `shiny.appobj` that can be launched with `shiny::runApp()`.
+A \code{shiny.appobj} that can be launched with \code{shiny::runApp()}.
 }
 \description{
-Build the HistoneMod Shiny application object.
+Build the HistoneMod Shiny application object
 }

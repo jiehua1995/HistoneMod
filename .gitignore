@@ -4,7 +4,7 @@
 .Ruserdata
 
 .Rbuildignore
-*.Rproj
+# *.Rproj
 
 *.tar.gz
 *.zip
@@ -25,3 +25,4 @@ vignettes/*.pdf
 /.quarto/
 /.DS_Store
 Thumbs.db
+inst/doc
