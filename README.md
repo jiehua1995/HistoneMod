@@ -1,107 +1,142 @@
-# HistoneMod: Histone Post-translational Modifications Quantification Tool
+# HistoneMod
 
-## If you find this repository useful for your research, please consider giving it a star
+## ⭐ If you find this repository useful for your research, please consider giving it a star!
 
-![Version](https://img.shields.io/badge/version-0.6.1-blue.svg)
+[![Version](https://img.shields.io/badge/version-0.6.2-blue.svg)](CHANGELOG.md)
 [![R](https://img.shields.io/badge/R-%3E%3D%204.1-brightgreen.svg)](https://www.r-project.org/)
 ![Shiny](https://img.shields.io/badge/framework-Shiny-1f77b4)
 ![GitHub contributors](https://img.shields.io/github/contributors/jiehua1995/HistoneMod)
 ![GitHub last commit](https://img.shields.io/github/last-commit/jiehua1995/HistoneMod)
 ![GitHub repo size](https://img.shields.io/github/repo-size/jiehua1995/HistoneMod)
-
 ![Bioinformatics](https://img.shields.io/badge/field-Bioinformatics-green)
 ![Proteomics](https://img.shields.io/badge/data-Proteomics-orange)
 ![Histone PTM](https://img.shields.io/badge/analysis-Histone%20PTM-red)
 ![Maintained](https://img.shields.io/badge/status-actively%20maintained-brightgreen)
 
-`HistoneMod` is an installable R package that provides a Shiny application for **quantitative analysis of histone post-translational modifications (PTMs)**. It is designed for processing, filtering, visualizing, and exporting peptide-level data exported from Skyline.
+`HistoneMod` is an R package for interactive analysis of histone post-translational modifications (PTMs) from Skyline-like peptide-level CSV exports. It provides a local Shiny application for end users together with a small programmatic API for preprocessing and visualization in scripted workflows.
 
-## Key Features
+Starting with version `0.6.2`, HistoneMod is distributed as an installable R package rather than as an online hosted Shiny service. The recommended workflow is therefore to install the package once and run the application locally from R.
 
-### Data Upload and Validation
-- Import peptide-level tables directly from Skyline in CSV format
-- Validate MS1 and sample annotation files before analysis
+## Features
 
-### Advanced Filtering
-- Select peptide modifications of interest
-- Filter samples by experimental group or replicate
-- Exclude or include unmodified peptides
-
-### Rich Visualizations
-- PCA plot for dimensionality reduction and sample clustering
-- Heatmap for peptide abundance patterns
-- Barplots for individual peptide-level comparisons
-
-### Data Export
-- Download filtered datasets in wide-format CSV
-- Export plots in multiple formats
-- Generate a quick PDF report
-
-### Modern UI
-- Clean Shiny interface for interactive exploration
+- Validates `MS1` and `Sample` input tables before analysis.
+- Computes relative peptide abundances across replicates and groups.
+- Provides interactive PCA, heatmap, and barplot views in a single Shiny workflow.
+- Supports plot export, wide-format table export, and quick PDF reporting.
+- Exposes reusable preprocessing and plotting helpers for scripted analyses.
 
 ## Installation
 
-`HistoneMod` is not on CRAN yet. Please install it directly from GitHub with `remotes`.
+Install HistoneMod from GitHub with dependencies enabled:
 
 ```r
 install.packages("remotes")
 remotes::install_github("jiehua1995/HistoneMod", dependencies = TRUE)
 ```
 
-If you already cloned this repository locally, you can also install from the package directory:
+HistoneMod declares its required runtime dependencies in `DESCRIPTION`, so they are installed automatically as part of package installation.
+
+If you already cloned the repository locally, you can also install from the package directory:
 
 ```r
 remotes::install_local("HistoneMod", dependencies = TRUE)
 ```
 
-After installation, open the tutorial vignette with:
+## Launch the application
 
-```r
-vignette("my-tutorial", package = "HistoneMod")
-```
-
-## Launch
-
-After installation, start the app with:
+For normal use, start the local Shiny application with:
 
 ```r
 HistoneMod::runHistoneMod()
 ```
 
-You can also build the application object directly:
+After the app opens, you can either upload your own `MS1` and `Sample` CSV
+files or use the built-in demo actions in the sidebar:
+
+- `Load Demo Data` loads the packaged demo dataset directly into the app.
+- `Copy Demo Files` copies the packaged demo CSV files into a folder that you
+  choose on your local machine.
+
+If you want the Shiny application object itself:
 
 ```r
 app <- HistoneMod::histonemod_app()
 shiny::runApp(app)
 ```
 
-## Input Files
+## Input data
 
-The application expects two CSV files:
+The application expects two comma-separated CSV files. Example layouts are shown below.
 
-1. `MS1 file`
-   Contains peptide-level quantitative data with required columns such as:
-   `Protein.Name`, `Peptide.Note`, `Replicate.Name`, `Total.Area.MS1`, and `Isotope.Label.Type`.
+### MS1 file example
 
-2. `Sample file`
-   Contains sample annotation data with required columns such as:
-   `Replicate.Name`, `Group`, and `Replicate.No`.
+| Protein Name | Peptide Note | Replicate Name | Total Area MS1 | Isotope Label Type |
+| --- | --- | --- | ---: | --- |
+| H3_3-8 | H3_3_8_K4_un | SampleA_rep1 | 4320000000 | light |
+| H3_3-8 | H3_3_8_K4_me3 | SampleA_rep1 | 1680000000 | light |
 
-Use the in-app help buttons for concrete file format examples.
+### Sample file example
 
-## Authors and Contributors
+| Replicate Name | Group | Replicate No |
+| --- | --- | ---: |
+| SampleA_rep1 | SampleA | 1 |
+| SampleA_rep2 | SampleA | 2 |
 
-- **Jie Hua** - Package developer and maintainer
-- **Dr. Marco Borso** - Contributor
-- **Beyza Bozdag** - Contributor
-- **Prof. Dr. Axel Imhof** - Supervisor
+Because HistoneMod uses `read.csv()`, column names with spaces, such as `Protein Name`, are automatically converted by R to dotted names such as `Protein.Name` after import. Skyline exports with space-separated headers are therefore accepted. CSV files produced under different operating systems, language settings, or software versions may vary slightly, but standard comma-separated files are supported as long as the required columns are present.
 
-**Group**: [Imhof Laboratory](https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html)  
-**Institution**: Ludwig Maximilian University of Munich
+## Bundled demo data
 
-## Bug Reports and Feature Requests
+HistoneMod ships with a small packaged demo dataset for local exploration and
+training. The bundled demo data are derived from the structure of real histone
+modification result tables, but sample identifiers were anonymized, numeric
+values were randomized, and the content was simplified to retain only four
+representative histone modification states.
 
-If you encounter any issues or have suggestions for improvements, please open an issue:
+You can access the packaged demo files from R with:
+
+```r
+system.file("extdata", "MS1_demo.csv", package = "HistoneMod")
+system.file("extdata", "samples_demo.csv", package = "HistoneMod")
+```
+
+## Package tutorial
+
+Open the bundled vignette with:
+
+```r
+vignette("tutorial", package = "HistoneMod")
+```
+
+## Programmatic API
+
+Most users only need the Shiny interface. For scripted analyses, the following functions are exported:
+
+- `depends_check()`
+- `histonemod_app()`
+- `runHistoneMod()`
+- `percentage_calculation()`
+- `plot_pca()`
+- `plot_heatmap()`
+- `plot_barplot_single()`
+
+## Dependency management
+
+`depends_check()` can optionally install missing packages with `pak`, which is useful when you prefer a single dependency manager for packages from both CRAN and Bioconductor:
+
+```r
+HistoneMod::depends_check(install_missing = TRUE)
+```
+
+## Project information
+
+- **Maintainer**: Jie Hua
+- **Contributors**: Marco Borso, Beyza Bozdag
+- **Supervisor**: Axel Imhof
+- **Research group**: [Imhof Laboratory](https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html)
+- **Institution**: Ludwig Maximilian University of Munich
+
+## Support
+
+Please use the issue tracker for bug reports, feature requests, and installation questions:
 
 - [GitHub Issues](https://github.com/jiehua1995/HistoneMod/issues)

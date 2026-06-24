@@ -2,16 +2,7 @@
 # This file wires the UI to computation: validation, reactivity, plot rendering,
 # export modals (with fixed-size preview + zoom), and PDF report generation.
 
-#' HistoneMod Shiny Server Function
-#'
-#' Implements the server-side logic for the HistoneMod application, including
-#' file validation, percentage calculation, plotting, data export, and PDF
-#' report generation.
-#'
-#' @param input,output,session Standard Shiny server function arguments.
-#'
-#' @return No return value. Called for its side effects in a Shiny app.
-#' @export
+# Internal Shiny server function used by `histonemod_app()`.
 histonemod_server <- function(input, output, session) {
 
   ##### Export Settings (Persisted Across Modals) #####
@@ -309,6 +300,89 @@ histonemod_server <- function(input, output, session) {
   filtered_data <- reactiveVal(NULL)
   current_plot <- reactiveVal(NULL)
   current_plot_type <- reactiveVal(NULL)
+  data_source_mode <- reactiveVal("none")
+  ms1_source_name <- reactiveVal(NA_character_)
+  sample_source_name <- reactiveVal(NA_character_)
+  demo_ms1_path <- system.file("extdata", "MS1_demo.csv", package = "HistoneMod")
+  demo_sample_path <- system.file("extdata", "samples_demo.csv", package = "HistoneMod")
+  demo_copy_roots <- c(Home = normalizePath("~", winslash = "/", mustWork = FALSE), shinyFiles::getVolumes()())
+
+  trigger_success_effect <- function() {
+    runjs("
+      const duration = 3000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 999 };
+
+      function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+        const particleCount = 50 * (timeLeft / duration);
+        confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0, 1), y: Math.random() - 0.2 } }));
+      }, 250);
+    ")
+  }
+
+  apply_loaded_data <- function(ms1, sample, ms1_name, sample_name, source_mode = "upload") {
+    ms1_data(ms1)
+    sample_data(sample)
+    ms1_source_name(ms1_name)
+    sample_source_name(sample_name)
+    data_source_mode(source_mode)
+
+    updatePickerInput(session, "select_peptides",
+                      choices = unique(ms1$Peptide.Note),
+                      selected = unique(ms1$Peptide.Note))
+    updatePickerInput(session, "select_samples",
+                      choices = unique(sample$Replicate.Name),
+                      selected = unique(sample$Replicate.Name))
+    updatePickerInput(session, "select_protein",
+                      choices = unique(ms1$Protein.Name),
+                      selected = unique(ms1$Protein.Name)[1])
+
+    trigger_success_effect()
+  }
+
+  load_data_sources <- function(ms1_path, sample_path, ms1_name, sample_name, source_mode = "upload") {
+    ms1_validation <- validate_ms1_file(ms1_path)
+    sample_validation <- validate_sample_file(sample_path)
+
+    if(!ms1_validation$valid) {
+      shinyalert("Invalid MS1 File", ms1_validation$message, type = "error")
+      return(FALSE)
+    }
+
+    if(!sample_validation$valid) {
+      shinyalert("Invalid Sample File", sample_validation$message, type = "error")
+      return(FALSE)
+    }
+
+    apply_loaded_data(
+      ms1 = ms1_validation$data,
+      sample = sample_validation$data,
+      ms1_name = ms1_name,
+      sample_name = sample_name,
+      source_mode = source_mode
+    )
+
+    TRUE
+  }
+
+  selected_demo_copy_dir <- reactive({
+    req(input$copy_demo_dir)
+    parsed <- shinyFiles::parseDirPath(demo_copy_roots, input$copy_demo_dir)
+    if(length(parsed) < 1 || is.na(parsed[1]) || identical(parsed[1], "")) {
+      return(NULL)
+    }
+    parsed[1]
+  })
+
+  shinyFiles::shinyDirChoose(input, "copy_demo_dir", roots = demo_copy_roots, session = session)
 
   ##### Version Footer (GitHub Release Check) #####
   latest_version_val <- reactiveVal(NA_character_)
@@ -345,32 +419,38 @@ histonemod_server <- function(input, output, session) {
   ##### Demo Data (Used in Help Popups) #####
   # Demo data
   demo_ms1 <- data.frame(
-    Replicate.Name       = c("5A_rep1", "5A_rep2"),
+    Replicate.Name       = c("SampleA_rep1", "SampleA_rep2"),
     Isotope.Label.Type   = c("light", "light"),
     Protein.Name         = c("H3_3-8", "H3_3-8"),
-    Total.Area.MS1.Sum   = c(11572408320, 11156388864),
-    Peptide.Note         = c("H3_3_8_K4_un", "H3_3_8_K9_ac")
+    Total.Area.MS1       = c(4320000000, 1680000000),
+    Peptide.Note         = c("H3_3_8_K4_un", "H3_3_8_K4_me3")
   )
   
   
   demo_sample <- data.frame(
-    Replicate.Name = c("5A_rep1", "5A_rep2"),
-    Group = c("5A","5A"),
+    Replicate.Name = c("SampleA_rep1", "SampleA_rep2"),
+    Group = c("SampleA", "SampleA"),
     Replicate.No = c(1,2)
   )
   
   ##### Sidebar: Validation Status UI #####
   # Validation status display
   output$validation_status <- renderUI({
-    ms1_valid <- !is.null(input$ms1_file)
-    sample_valid <- !is.null(input$sample_file)
+    ms1_valid <- !is.null(ms1_data())
+    sample_valid <- !is.null(sample_data())
+    current_mode <- data_source_mode()
     
     if(ms1_valid && sample_valid) {
+      label <- if(identical(current_mode, "demo")) {
+        "Randomized demo data loaded successfully"
+      } else {
+        "Files validated successfully"
+      }
       div(
         class = "validation-badge",
         style = "background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0;",
         icon("check-circle"),
-        span("Files validated successfully")
+        span(label)
       )
     } else if(ms1_valid || sample_valid) {
       div(
@@ -392,11 +472,11 @@ histonemod_server <- function(input, output, session) {
   ##### Tab: Data Preview (Conditional UI) #####
   # Preview content conditional UI
   output$preview_content <- renderUI({
-    if(is.null(input$ms1_file) && is.null(input$sample_file)) {
+    if(is.null(ms1_data()) && is.null(sample_data())) {
       div(class = "plot-container text-center", style="padding: 60px 20px;",
         icon("upload", style="font-size: 48px; color: #94a3b8; margin-bottom: 16px;"),
-        h4(style="color: #64748b; font-weight: 500;", "Please upload MS1 and Sample files"),
-        p(style="color: #94a3b8; font-size: 14px;", "Upload your data files using the sidebar to view previews")
+        h4(style="color: #64748b; font-weight: 500;", "Please upload files or load the packaged demo data"),
+        p(style="color: #94a3b8; font-size: 14px;", "Use the sidebar to upload your own CSV files or to load the bundled randomized demo dataset")
       )
     } else {
       tagList(
@@ -421,83 +501,128 @@ histonemod_server <- function(input, output, session) {
   ##### Data Preview Tables #####
   # MS1 file preview
   output$ms1_preview <- renderDT({
-    req(input$ms1_file)
-    validation <- validate_ms1_file(input$ms1_file$datapath)
-    if(!validation$valid) {
-      shinyalert("Invalid MS1 File", validation$message, type="error")
-      return(NULL)
-    }
-    datatable(head(validation$data, 100), options = list(pageLength = 10, scrollX = TRUE))
+    req(ms1_data())
+    datatable(head(ms1_data(), 100), options = list(pageLength = 10, scrollX = TRUE))
   })
   
   # Sample file preview
   output$sample_preview <- renderDT({
-    req(input$sample_file)
-    validation <- validate_sample_file(input$sample_file$datapath)
-    if(!validation$valid) {
-      shinyalert("Invalid Sample File", validation$message, type="error")
-      return(NULL)
-    }
-    datatable(validation$data, options = list(pageLength = 10, scrollX = TRUE))
+    req(sample_data())
+    datatable(sample_data(), options = list(pageLength = 10, scrollX = TRUE))
   })
   
   ##### File Upload Initialization #####
   # Init the select sections after uploading
   observeEvent(list(input$ms1_file, input$sample_file), {
     req(input$ms1_file, input$sample_file)
-    
-    # Validate files
-    ms1_validation <- validate_ms1_file(input$ms1_file$datapath)
-    sample_validation <- validate_sample_file(input$sample_file$datapath)
-    
-    if(!ms1_validation$valid) {
-      shinyalert("Invalid MS1 File", ms1_validation$message, type="error")
+
+    load_data_sources(
+      ms1_path = input$ms1_file$datapath,
+      sample_path = input$sample_file$datapath,
+      ms1_name = input$ms1_file$name,
+      sample_name = input$sample_file$name,
+      source_mode = "upload"
+    )
+  })
+
+  observeEvent(input$load_demo_data, {
+    ok <- load_data_sources(
+      ms1_path = demo_ms1_path,
+      sample_path = demo_sample_path,
+      ms1_name = "MS1_demo.csv",
+      sample_name = "samples_demo.csv",
+      source_mode = "demo"
+    )
+
+    if(isTRUE(ok)) {
+      shinyalert(
+        "Randomized Demo Data Loaded",
+        HTML(paste0(
+          "<div style='text-align:left;'>",
+          "HistoneMod loaded the bundled demo dataset directly into the app.<br><br>",
+          "This dataset is derived from the structure of real histone modification tables, ",
+          "but sample identifiers were anonymized, numeric values were randomized, and only four representative modification states were retained for demonstration.",
+          "</div>"
+        )),
+        type = "success",
+        html = TRUE
+      )
+    }
+  })
+
+  output$demo_copy_target <- renderUI({
+    target_dir <- selected_demo_copy_dir()
+
+    if(is.null(target_dir)) {
+      div(style = "color:#64748b; font-size:13px; margin-top:10px;",
+          "No destination folder selected yet.")
+    } else {
+      div(style = "color:#0f172a; font-size:13px; margin-top:10px; word-break:break-all;",
+          paste("Destination folder:", target_dir))
+    }
+  })
+
+  observeEvent(input$open_demo_copy_modal, {
+    showModal(modalDialog(
+      title = "Copy bundled demo CSV files",
+      div(
+        style = "color:#334155; line-height:1.6;",
+        "Choose a local destination folder. HistoneMod will copy the packaged demo files there so you can upload them manually or inspect them outside the app."
+      ),
+      div(
+        style = "margin-top:16px;",
+        shinyFiles::shinyDirButton("copy_demo_dir", "Choose destination folder", "Select folder")
+      ),
+      uiOutput("demo_copy_target"),
+      div(
+        style = "margin-top:12px; color:#64748b; font-size:13px;",
+        "The copied files are anonymized and numerically randomized examples derived from the structure of real data."
+      ),
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("confirm_copy_demo", "Copy demo files", class = "btn btn-primary")
+      ),
+      easyClose = TRUE
+    ))
+  })
+
+  observeEvent(input$confirm_copy_demo, {
+    target_dir <- selected_demo_copy_dir()
+
+    if(is.null(target_dir) || !dir.exists(target_dir)) {
+      shinyalert("Destination Required", "Please choose a valid destination folder first.", type = "warning")
       return()
     }
-    
-    if(!sample_validation$valid) {
-      shinyalert("Invalid Sample File", sample_validation$message, type="error")
+
+    copied <- tryCatch({
+      ms1_target <- file.path(target_dir, "MS1_demo.csv")
+      sample_target <- file.path(target_dir, "samples_demo.csv")
+
+      ok_ms1 <- file.copy(demo_ms1_path, ms1_target, overwrite = TRUE)
+      ok_sample <- file.copy(demo_sample_path, sample_target, overwrite = TRUE)
+
+      isTRUE(ok_ms1) && isTRUE(ok_sample)
+    }, error = function(e) FALSE)
+
+    if(!isTRUE(copied)) {
+      shinyalert("Copy Failed", "HistoneMod could not copy the demo files to the selected folder.", type = "error")
       return()
     }
-    
-    ms1 <- ms1_validation$data
-    sample <- sample_validation$data
-    
-    ms1_data(ms1)
-    sample_data(sample)
-    
-    updatePickerInput(session, "select_peptides",
-                      choices=unique(ms1$Peptide.Note),
-                      selected=unique(ms1$Peptide.Note))
-    updatePickerInput(session, "select_samples",
-                      choices=unique(sample$Replicate.Name),
-                      selected=unique(sample$Replicate.Name))
-    updatePickerInput(session, "select_protein",
-                      choices=unique(ms1$Protein.Name),
-                      selected=unique(ms1$Protein.Name)[1])
-    
-    # Effect
-    
-    runjs("
-    const duration = 3000;
-    const animationEnd = Date.now() + duration;
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 999 };
 
-    function randomInRange(min, max) {
-      return Math.random() * (max - min) + min;
-    }
-
-    const interval = setInterval(function() {
-      const timeLeft = animationEnd - Date.now();
-      if (timeLeft <= 0) {
-        return clearInterval(interval);
-      }
-      const particleCount = 50 * (timeLeft / duration);
-      confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0, 1), y: Math.random() - 0.2 } }));
-    }, 250);
-  ")
-    
-    
+    removeModal()
+    shinyalert(
+      "Demo Files Copied",
+      HTML(paste0(
+        "<div style='text-align:left;'>",
+        "The packaged demo files were copied successfully.<br><br>",
+        "<code>MS1_demo.csv</code><br>",
+        "<code>samples_demo.csv</code><br><br>",
+        "Destination:<br><code>", target_dir, "</code>",
+        "</div>"
+      )),
+      type = "success",
+      html = TRUE
+    )
   })
   
   ##### Help / Info Popups #####
@@ -507,13 +632,16 @@ histonemod_server <- function(input, output, session) {
       HTML(paste0(
         "<div style='text-align:left; max-width:100%;'>",
         "Please upload a comma-delimited CSV file with at least these columns, like:<br>",
+        "<div style='margin:8px 0 10px 0; color:#475569;'>",
+        "The bundled example below is anonymized and numerically randomized from the structure of real data.",
+        "</div>",
         "<div style='overflow-x:auto; max-width:100%;'>",
         "<table style='border-collapse:collapse; width:100%; border:1px solid #94a3b8; table-layout:fixed;'>",
         "<tr>",
         "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Protein Name</th>",
         "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Peptide Note</th>",
         "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Replicate Name</th>",
-        "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Total Area MS1 Sum</th>",
+        "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Total Area MS1</th>",
         "<th style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>Isotope Label Type</th>",
         "</tr>",
         paste0(
@@ -521,7 +649,7 @@ histonemod_server <- function(input, output, session) {
           "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_ms1$Protein.Name, "</td>",
           "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_ms1$Peptide.Note, "</td>",
           "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_ms1$Replicate.Name, "</td>",
-          "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_ms1$Total.Area.MS1.Sum, "</td>",
+          "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_ms1$Total.Area.MS1, "</td>",
           "<td style='border:1px solid #94a3b8; padding:4px 6px; white-space:normal; word-break:break-word;'>", demo_ms1$Isotope.Label.Type, "</td>",
           "</tr>",
           collapse = ""
@@ -539,6 +667,9 @@ histonemod_server <- function(input, output, session) {
                HTML(paste0(
                  "<div style='text-align:left; max-width:100%;'>",
                  "Please upload a comma-delimited CSV file with at least these columns, like:<br>",
+                 "<div style='margin:8px 0 10px 0; color:#475569;'>",
+                 "The bundled example below is anonymized and uses simplified sample labels for demonstration.",
+                 "</div>",
                  "<div style='overflow-x:auto; max-width:100%;'>",
                  "<table style='border-collapse:collapse; width:100%; border:1px solid #94a3b8; table-layout:fixed;'>",
                  "<tr>",
@@ -1524,8 +1655,8 @@ histonemod_server <- function(input, output, session) {
       }
 
       data_source_page <- function() {
-        ms1_name <- if(!is.null(input$ms1_file)) input$ms1_file$name else NA_character_
-        sample_name <- if(!is.null(input$sample_file)) input$sample_file$name else NA_character_
+        ms1_name <- ms1_source_name()
+        sample_name <- sample_source_name()
 
         df <- df_for_counts
         group_n <- if("Group" %in% names(df)) length(unique(df$Group)) else NA_integer_

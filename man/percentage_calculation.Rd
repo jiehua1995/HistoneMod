@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{percentage_calculation}
 \alias{percentage_calculation}
-\title{Calculate Relative Peptide Percentages}
+\title{Calculate relative peptide percentages}
 \usage{
 percentage_calculation(
   ms1,
@@ -18,7 +18,7 @@ percentage_calculation(
 
 \item{sample}{A data frame containing sample metadata.}
 
-\item{exclude_un}{Logical; if \code{TRUE}, excludes peptide names ending in
+\item{exclude_un}{Logical; if \code{TRUE}, exclude peptide names ending in
 \code{"un"} or \code{"unun"}.}
 
 \item{selected_peptides}{Optional character vector of peptide names to keep.}

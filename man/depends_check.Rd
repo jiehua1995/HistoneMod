@@ -2,17 +2,25 @@
 % Please edit documentation in R/functions.R
 \name{depends_check}
 \alias{depends_check}
-\title{Check Whether HistoneMod Dependencies Are Available}
+\title{Check and optionally install HistoneMod dependencies}
 \usage{
-depends_check()
+depends_check(install_missing = FALSE, attach = FALSE)
+}
+\arguments{
+\item{install_missing}{Logical; if \code{TRUE}, install any missing packages using
+\code{pak::pkg_install()}.}
+
+\item{attach}{Logical; if \code{TRUE}, attach the required packages with
+\code{library()}. The default is \code{FALSE} because HistoneMod imports the required
+namespaces itself.}
 }
 \value{
-Invisibly returns \code{TRUE} when all required packages are available.
-Throws an error listing missing packages otherwise.
+Invisibly returns \code{TRUE} when all required packages are available
+after any optional installation step. Throws an error if packages are still
+missing.
 }
 \description{
 Validates that the packages declared in \code{DESCRIPTION} are installed and
-available to the current R session. This is mainly a diagnostic helper; when
-HistoneMod is installed normally, these dependencies should already be pulled
-in automatically.
+available to the current R session. If requested, missing packages are
+installed with \code{pak}, which can manage both CRAN and Bioconductor packages.
 }

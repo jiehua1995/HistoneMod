@@ -4,22 +4,30 @@
 # It is sourced by both ui.R and server.R.
 
 ##### Dependencies & Environment Setup #####
-# CUSTOMIZE: Add/remove packages in `required_packages` if your app evolves.
+# Package dependencies should be declared in DESCRIPTION so they are installed
+# automatically with the package. `depends_check()` can optionally install any
+# missing packages via pak, which handles both CRAN and Bioconductor sources.
 # ------------------------
 # 0. Prepare environment
 # ------------------------
 
-#' Check Whether HistoneMod Dependencies Are Available
+#' Check and optionally install HistoneMod dependencies
 #'
 #' Validates that the packages declared in `DESCRIPTION` are installed and
-#' available to the current R session. This is mainly a diagnostic helper; when
-#' HistoneMod is installed normally, these dependencies should already be pulled
-#' in automatically.
+#' available to the current R session. If requested, missing packages are
+#' installed with `pak`, which can manage both CRAN and Bioconductor packages.
 #'
-#' @return Invisibly returns `TRUE` when all required packages are available.
-#'   Throws an error listing missing packages otherwise.
+#' @param install_missing Logical; if `TRUE`, install any missing packages using
+#'   `pak::pkg_install()`.
+#' @param attach Logical; if `TRUE`, attach the required packages with
+#'   `library()`. The default is `FALSE` because HistoneMod imports the required
+#'   namespaces itself.
+#'
+#' @return Invisibly returns `TRUE` when all required packages are available
+#'   after any optional installation step. Throws an error if packages are still
+#'   missing.
 #' @export
-depends_check <- function() {
+depends_check <- function(install_missing = FALSE, attach = FALSE) {
   desc_fields <- tryCatch(
     utils::packageDescription("HistoneMod", fields = c("Depends", "Imports")),
     error = function(e) NULL
@@ -38,7 +46,8 @@ depends_check <- function() {
   if (length(required_packages) == 0) {
     required_packages <- c(
       "DT", "dplyr", "ggplot2", "ggrepel", "ggsignif", "httr",
-      "jsonlite", "pheatmap", "png", "shiny", "shinyalert",
+      "jsonlite", "pak", "pheatmap", "png", "shiny", "shinyalert",
+      "shinyFiles",
       "shinycssloaders", "shinyjs", "shinyWidgets", "svglite",
       "tidyr", "viridis"
     )
@@ -48,13 +57,31 @@ depends_check <- function() {
     !vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)
   ]
 
+  if (length(missing_packages) > 0 && isTRUE(install_missing)) {
+    if (!requireNamespace("pak", quietly = TRUE)) {
+      install.packages("pak")
+    }
+
+    pak::pkg_install(missing_packages)
+
+    missing_packages <- required_packages[
+      !vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)
+    ]
+  }
+
   if (length(missing_packages) > 0) {
     stop(
       "Missing required packages: ",
       paste(missing_packages, collapse = ", "),
-      ". Reinstall HistoneMod so its Imports are installed automatically.",
+      ". Reinstall HistoneMod or run depends_check(install_missing = TRUE).",
       call. = FALSE
     )
+  }
+
+  if (isTRUE(attach)) {
+    for (pkg in required_packages) {
+      library(pkg, character.only = TRUE)
+    }
   }
 
   invisible(TRUE)
@@ -65,16 +92,7 @@ depends_check <- function() {
 # ------------------------
 # File Validation Functions
 # ------------------------
-#' Validate an MS1 CSV File
-#'
-#' Checks that an MS1 CSV export can be read, contains the required columns, and
-#' is not empty.
-#'
-#' @param file_path Path to the MS1 CSV file.
-#'
-#' @return A list with at least `valid` and `message`. When validation succeeds,
-#'   the returned list also contains the parsed data frame in `data`.
-#' @export
+# Internal file validator for MS1 CSV inputs.
 validate_ms1_file <- function(file_path) {
   tryCatch({
     df <- read.csv(file_path)
@@ -104,16 +122,7 @@ validate_ms1_file <- function(file_path) {
   })
 }
 
-#' Validate a Sample Annotation CSV File
-#'
-#' Checks that a sample annotation CSV file can be read, contains the required
-#' columns, and is not empty.
-#'
-#' @param file_path Path to the sample CSV file.
-#'
-#' @return A list with at least `valid` and `message`. When validation succeeds,
-#'   the returned list also contains the parsed data frame in `data`.
-#' @export
+# Internal file validator for sample annotation CSV inputs.
 validate_sample_file <- function(file_path) {
   tryCatch({
     df <- read.csv(file_path)
@@ -148,7 +157,7 @@ validate_sample_file <- function(file_path) {
 # ------------------------
 # 1. percentage_calculation
 # ------------------------
-#' Calculate Relative Peptide Percentages
+#' Calculate relative peptide percentages
 #'
 #' Merges MS1 and sample tables, keeps light peptides, computes within-protein
 #' relative abundances, and optionally filters unmodified peptides, peptide
@@ -156,7 +165,7 @@ validate_sample_file <- function(file_path) {
 #'
 #' @param ms1 A data frame containing peptide-level MS1 measurements.
 #' @param sample A data frame containing sample metadata.
-#' @param exclude_un Logical; if `TRUE`, excludes peptide names ending in
+#' @param exclude_un Logical; if `TRUE`, exclude peptide names ending in
 #'   `"un"` or `"unun"`.
 #' @param selected_peptides Optional character vector of peptide names to keep.
 #' @param selected_samples Optional character vector of sample names to keep.
@@ -225,9 +234,9 @@ percentage_calculation <- function(ms1, sample,
 # ------------------------
 # 2. PCA plot
 # ------------------------
-#' Plot PCA Scores
+#' Plot PCA scores
 #'
-#' Builds a PCA score plot from the processed HistoneMod percentage table.
+#' Builds a PCA score plot from a processed HistoneMod percentage table.
 #'
 #' @param data_merge A processed data frame containing at least
 #'   `Replicate.Name`, `Peptide.Note`, and `Percentage`.
@@ -324,13 +333,50 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis")
     ) +
     color_scale
   
-  # Add confidence ellipses if requested and enough samples per group
+  # Add confidence ellipses for eligible groups only.
   if(show_ellipse) {
     group_counts <- table(scores$Group)
-    if(all(group_counts >= 4)) {
-      # Suppress warnings about too few points
-      p <- p + suppressWarnings(
-        stat_ellipse(aes(color = Group), level = 0.95, linetype = 2)
+    eligible_groups <- names(group_counts[group_counts >= 4])
+    if(length(eligible_groups) > 0) {
+      build_group_ellipse <- function(df_group, level = 0.95, points = 120) {
+        xy <- as.matrix(df_group[, c("PC1", "PC2"), drop = FALSE])
+        center <- colMeans(xy, na.rm = TRUE)
+        cov_mat <- stats::cov(xy, use = "complete.obs")
+
+        if(!all(is.finite(cov_mat))) {
+          cov_mat <- diag(c(1, 1))
+        }
+
+        diag(cov_mat) <- pmax(diag(cov_mat), 1e-8)
+        cov_mat <- cov_mat + diag(1e-8, 2)
+
+        eig <- eigen(cov_mat, symmetric = TRUE)
+        eig$values <- pmax(eig$values, 1e-8)
+
+        radius <- sqrt(stats::qchisq(level, df = 2))
+        theta <- seq(0, 2 * pi, length.out = points)
+        unit_circle <- cbind(cos(theta), sin(theta))
+        transform <- eig$vectors %*% diag(sqrt(eig$values), nrow = 2) * radius
+        coords <- unit_circle %*% t(transform)
+        coords <- sweep(coords, 2, center, FUN = "+")
+
+        data.frame(
+          PC1 = coords[, 1],
+          PC2 = coords[, 2],
+          Group = df_group$Group[1]
+        )
+      }
+
+      ellipse_df <- dplyr::bind_rows(lapply(eligible_groups, function(grp) {
+        build_group_ellipse(scores %>% filter(Group == grp))
+      }))
+
+      p <- p + geom_path(
+        data = ellipse_df,
+        mapping = aes(x = PC1, y = PC2, group = Group, color = Group),
+        inherit.aes = FALSE,
+        linetype = 2,
+        linewidth = 0.8
       )
     }
   }
@@ -345,9 +391,9 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis")
 # ------------------------
 # 3. Heatmap plot
 # ------------------------
-#' Plot a Heatmap
+#' Plot a heatmap
 #'
-#' Converts the processed HistoneMod percentage table into a peptide-by-sample
+#' Converts a processed HistoneMod percentage table into a peptide-by-sample
 #' matrix and renders a heatmap with `pheatmap`.
 #'
 #' @param data_merge A processed data frame containing at least
@@ -451,7 +497,7 @@ plot_heatmap <- function(
 # ------------------------
 # 4. Barplot per protein (single peptide)
 # ------------------------
-#' Plot a Single-Peptide Barplot
+#' Plot a single-peptide barplot
 #'
 #' Summarises peptide percentages by group and renders a single barplot with
 #' optional significance testing.
@@ -633,19 +679,10 @@ plot_barplot_single <- function(
 # ------------------------
 # 5. App version helpers
 # ------------------------
-APP_VERSION <- "0.5.2"
+APP_VERSION <- "0.6.2"
 GITHUB_REPO <- "jiehua1995/HistoneMod"
 
-#' Normalize a Version String
-#'
-#' Trims whitespace, removes a leading `v`, and returns a scalar character
-#' version string.
-#'
-#' @param x A version-like object.
-#'
-#' @return A length-one character vector, or `NA_character_` when the input does
-#'   not contain a usable version.
-#' @export
+# Internal helper for normalizing version strings.
 normalize_version <- function(x) {
   if(is.null(x) || length(x) == 0) return(NA_character_)
   x <- as.character(x[1])
@@ -655,15 +692,7 @@ normalize_version <- function(x) {
   x
 }
 
-#' Query the Latest GitHub Release Version
-#'
-#' Fetches the latest release tag for a GitHub repository and normalizes it to a
-#' plain version string.
-#'
-#' @param repo Repository slug in `"owner/repo"` format.
-#'
-#' @return A normalized version string, or `NA_character_` if the lookup fails.
-#' @export
+# Internal helper for querying the latest GitHub release version.
 github_latest_release_version <- function(repo) {
   repo <- as.character(repo)[1]
   if(is.na(repo) || identical(trimws(repo), "")) return(NA_character_)
@@ -717,32 +746,14 @@ get_latest_release_version_cached <- local({
 # ------------------------
 
 # Download_UI
-#' Build a Plot Download Module UI
-#'
-#' Creates a namespaced download button for the legacy reusable plot download
-#' module.
-#'
-#' @param id Module id.
-#' @param label Button label.
-#'
-#' @return A Shiny UI element.
-#' @export
+# Internal legacy UI helper for download buttons.
 downloadPlotUI <- function(id, label = "Download Plot") {
   ns <- NS(id)
   downloadButton(ns("download"), label)
 }
 
 # Download_server
-#' Register a Plot Download Module Server
-#'
-#' Registers server logic for a simple plot download module.
-#'
-#' @param id Module id.
-#' @param plot_reactive A reactive expression returning a plot object.
-#' @param filename_prefix Prefix used for the downloaded file name.
-#'
-#' @return The result of [shiny::moduleServer()].
-#' @export
+# Internal legacy server helper for plot downloads.
 downloadPlotServer <- function(id, plot_reactive, filename_prefix = "plot") {
   moduleServer(id, function(input, output, session) {
     output$download <- downloadHandler(

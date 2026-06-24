@@ -4,11 +4,16 @@
 \name{HistoneMod-package}
 \alias{HistoneMod}
 \alias{HistoneMod-package}
-\title{HistoneMod package}
+\title{HistoneMod}
 \description{
-Provides a Shiny application and reusable helper functions for quantitative
-analysis of histone post-translational modifications from peptide-level CSV
-exports.
+\code{HistoneMod} provides a local Shiny application and a small programmatic API
+for quantitative analysis of histone post-translational modifications from
+Skyline-like peptide-level CSV exports.
+}
+\details{
+Most users will start the interactive workflow with \code{\link[=runHistoneMod]{runHistoneMod()}}. The
+package also exports helper functions for preprocessing and plotting in
+scripted analyses.
 }
 \seealso{
 Useful links:
@@ -34,4 +39,3 @@ Other contributors:
 }
 
 }
-\keyword{internal}

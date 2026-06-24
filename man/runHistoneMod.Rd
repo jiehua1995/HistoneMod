@@ -13,5 +13,6 @@ runHistoneMod(...)
 Invisibly returns the value from \code{\link[shiny:runApp]{shiny::runApp()}}.
 }
 \description{
-Launch the HistoneMod Shiny application
+Convenience wrapper around \code{\link[=histonemod_app]{histonemod_app()}} and \code{\link[shiny:runApp]{shiny::runApp()}} for
+standard end-user usage.
 }

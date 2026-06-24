@@ -1,11 +1,7 @@
 ##### HistoneMod Shiny UI #####
 # This file wraps the application UI as a package function.
 
-#' Build the HistoneMod User Interface
-#'
-#' Creates the top-level Shiny UI for the HistoneMod application.
-#'
-#' @return A Shiny UI definition.
+# Internal Shiny UI function used by `histonemod_app()`.
 histonemod_ui <- function() {
   .register_histonemod_resources()
 
@@ -71,6 +67,18 @@ histonemod_ui <- function() {
           border-radius: 12px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.08);
           margin-bottom: 16px;
+        }
+        .well,
+        form.well,
+        .col-sm-4 > .well,
+        .col-sm-4 > form.well,
+        .col-md-4 > .well,
+        .col-md-4 > form.well {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          margin-bottom: 0 !important;
         }
         .main-title {
           font-size: 28px;
@@ -150,9 +158,9 @@ histonemod_ui <- function() {
     ),
   
     ##### Sidebar + Main Panels #####
-    sidebarLayout(
-      sidebarPanel(
-        class = "px-3",
+    div(class = "container-fluid px-4",
+      div(class = "row",
+        div(class = "col-sm-4",
         ##### Sidebar: Upload Files #####
         div(class = "sidebar-section",
           h5(style="font-weight: 600; color: #1e293b; margin-bottom: 16px;", 
@@ -166,7 +174,15 @@ histonemod_ui <- function() {
             span(style="font-weight: 600; color: #334155; font-size: 14px;", "Sample File"),
             actionLink("sample_info", label = NULL, icon = icon("question-circle"),
                        style="background-color: #e2e8f0; border-radius:50%; padding:4px 6px; color:#475569; margin-left:8px; font-size:12px;")
-          ), accept=".csv")
+          ), accept=".csv"),
+          div(style = "display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;",
+            actionButton("load_demo_data", "Load Demo Data", icon = icon("flask"), class = "btn btn-outline-primary btn-sm"),
+            actionButton("open_demo_copy_modal", "Copy Demo Files", icon = icon("folder-open"), class = "btn btn-outline-secondary btn-sm")
+          ),
+          div(
+            style = "margin-top:10px; color:#64748b; font-size:12px; line-height:1.5;",
+            "Bundled demo data are anonymized and numerically randomized examples derived from the structure of real histone modification tables. Only four representative modification states are retained."
+          )
         ),
       
         ##### Sidebar: Data Selection #####
@@ -200,10 +216,10 @@ histonemod_ui <- function() {
         div(class = "sidebar-section",
           uiOutput("validation_status")
         )
-      ),
+        ),
     
       ##### Main Content: Tabs #####
-      mainPanel(
+      div(class = "col-sm-8",
         tabsetPanel(
           ##### Tab: Data Preview #####
           tabPanel("Data Preview",
@@ -219,7 +235,7 @@ histonemod_ui <- function() {
                        div(class = "col-md-6",
                          checkboxInput("show_ellipse", "Show 95% confidence ellipses", value = TRUE),
                          div(style="color: #64748b; font-size: 13px; margin-left: 24px; margin-top: -8px;",
-                           icon("info-circle"), " Requires ≥4 samples per group to display ellipses")
+                          icon("info-circle"), " Ellipses can be toggled on or off; groups with fewer than 4 samples are skipped.")
                        ),
                        div(class = "col-md-6",
                          selectInput("pca_palette", "Color palette",
@@ -348,6 +364,7 @@ histonemod_ui <- function() {
                    )
           )
         )
+      )
       )
     ),
   

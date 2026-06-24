@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{plot_pca}
 \alias{plot_pca}
-\title{Plot PCA Scores}
+\title{Plot PCA scores}
 \usage{
 plot_pca(data_merge, show_ellipse = TRUE, color_palette = "viridis")
 }
@@ -21,5 +21,5 @@ for groups with enough samples.}
 A \code{ggplot} object.
 }
 \description{
-Builds a PCA score plot from the processed HistoneMod percentage table.
+Builds a PCA score plot from a processed HistoneMod percentage table.
 }

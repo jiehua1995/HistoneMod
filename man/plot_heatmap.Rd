@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{plot_heatmap}
 \alias{plot_heatmap}
-\title{Plot a Heatmap}
+\title{Plot a heatmap}
 \usage{
 plot_heatmap(
   data_merge,
@@ -36,6 +36,6 @@ plot_heatmap(
 A \code{pheatmap} result object.
 }
 \description{
-Converts the processed HistoneMod percentage table into a peptide-by-sample
+Converts a processed HistoneMod percentage table into a peptide-by-sample
 matrix and renders a heatmap with \code{pheatmap}.
 }

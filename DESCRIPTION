@@ -1,18 +1,20 @@
 Package: HistoneMod
 Type: Package
-Title: Quantification of Histone Post-Translational Modifications
-Version: 0.6.1
+Title: Interactive Analysis of Histone Post-Translational Modifications
+Version: 0.6.2
 Authors@R: c(
     person("Jie", "Hua", email = "jie.Hua@bmc.med.lmu.de", role = c("aut", "cre")),
     person("Marco", "Borso", role = "ctb"),
     person("Beyza", "Bozdag", role = "ctb"),
     person("Axel", "Imhof", role = "ths")
     )
-Description: Provides an installable Shiny application for quantitative
-    analysis of histone post-translational modifications from Skyline-like
-    peptide-level CSV exports. The package validates input tables, computes
-    relative peptide abundances, and offers interactive PCA, heatmap, barplot,
-    data export, and quick PDF report workflows.
+Description: Runs a local 'shiny' application for quantitative analysis of
+    histone post-translational modifications from Skyline-like peptide-level
+    CSV exports. The package validates input tables, computes relative peptide
+    abundances, and provides interactive PCA, heatmap, and barplot workflows
+    together with plot export, table export, and quick PDF reporting. A small
+    programmatic API is also included for preprocessing and plotting in
+    scripted analyses.
 License: GPL-3
 URL: https://github.com/jiehua1995/HistoneMod
 BugReports: https://github.com/jiehua1995/HistoneMod/issues
@@ -26,11 +28,13 @@ Imports:
     ggsignif,
     httr,
     jsonlite,
+    pak,
     pheatmap,
     png,
     shiny,
     shinyalert,
     shinycssloaders,
+    shinyFiles,
     shinyjs,
     shinyWidgets,
     svglite,

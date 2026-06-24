@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{plot_barplot_single}
 \alias{plot_barplot_single}
-\title{Plot a Single-Peptide Barplot}
+\title{Plot a single-peptide barplot}
 \usage{
 plot_barplot_single(
   data_merge,

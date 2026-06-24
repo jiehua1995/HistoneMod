@@ -2,14 +2,9 @@
 # This file exposes the package-level helpers used to launch the Shiny app.
 
 HISTONEMOD_RESOURCE_PREFIX <- "HistoneMod-assets"
-HISTONEMOD_PACKAGE_FALLBACK_VERSION <- "0.6.1"
+HISTONEMOD_PACKAGE_FALLBACK_VERSION <- "0.6.2"
 
-#' Get the Installed HistoneMod Package Version
-#'
-#' Looks up the installed package metadata and falls back to an internal version
-#' string when the package description is unavailable.
-#'
-#' @return A length-one character vector containing the package version.
+# Internal package metadata helper.
 histonemod_package_version <- function() {
   desc <- tryCatch(utils::packageDescription("HistoneMod"), error = function(e) NULL)
   if (!is.null(desc) && !is.null(desc$Version) && nzchar(desc$Version)) {
@@ -18,23 +13,12 @@ histonemod_package_version <- function() {
   HISTONEMOD_PACKAGE_FALLBACK_VERSION
 }
 
-#' Get the Installed HistoneMod Logo Path
-#'
-#' Returns the absolute path to the packaged logo image.
-#'
-#' @return A character path to `inst/app/www/logo.png`, or an empty string when
-#'   the file is unavailable.
+# Internal helper for locating the packaged logo.
 histonemod_logo_path <- function() {
   system.file("app", "www", "logo.png", package = "HistoneMod")
 }
 
-#' Register HistoneMod Static Web Resources
-#'
-#' Adds the packaged web assets directory to Shiny's resource paths so bundled
-#' files can be served at runtime.
-#'
-#' @return Invisibly returns `TRUE` when the resource path is available and
-#'   `FALSE` otherwise.
+# Internal helper for registering packaged web assets.
 .register_histonemod_resources <- function() {
   app_www <- system.file("app", "www", package = "HistoneMod")
   if (!nzchar(app_www) || !dir.exists(app_www)) {
@@ -53,9 +37,11 @@ histonemod_logo_path <- function() {
   .register_histonemod_resources()
 }
 
-#' Build the HistoneMod Shiny application object
+#' Build the HistoneMod Shiny application
 #'
-#' @return A `shiny.appobj` that can be launched with `shiny::runApp()`.
+#' Constructs the Shiny application object used by HistoneMod.
+#'
+#' @return A `shiny.appobj` that can be launched with [shiny::runApp()].
 #' @export
 histonemod_app <- function() {
   .register_histonemod_resources()
@@ -63,6 +49,9 @@ histonemod_app <- function() {
 }
 
 #' Launch the HistoneMod Shiny application
+#'
+#' Convenience wrapper around [histonemod_app()] and [shiny::runApp()] for
+#' standard end-user usage.
 #'
 #' @param ... Additional arguments passed to [shiny::runApp()].
 #'

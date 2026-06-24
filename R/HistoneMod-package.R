@@ -1,10 +1,12 @@
-#' HistoneMod package
+#' HistoneMod
 #'
-#' Provides a Shiny application and reusable helper functions for quantitative
-#' analysis of histone post-translational modifications from peptide-level CSV
-#' exports.
+#' `HistoneMod` provides a local Shiny application and a small programmatic API
+#' for quantitative analysis of histone post-translational modifications from
+#' Skyline-like peptide-level CSV exports.
 #'
-#' @keywords internal
+#' Most users will start the interactive workflow with [runHistoneMod()]. The
+#' package also exports helper functions for preprocessing and plotting in
+#' scripted analyses.
 #' @import dplyr
 #' @import ggplot2
 #' @import tidyr
@@ -21,6 +23,7 @@
 #' @importFrom shiny tabsetPanel tagList tags uiOutput validate withProgress
 #' @importFrom shinyalert shinyalert useShinyalert
 #' @importFrom shinycssloaders withSpinner
+#' @importFrom shinyFiles getVolumes parseDirPath shinyDirChoose shinyDirButton
 #' @importFrom shinyjs runjs useShinyjs
 #' @importFrom shinyWidgets pickerInput updatePickerInput
 #' @importFrom grDevices bmp dev.off jpeg pdf png postscript setEPS svg tiff
