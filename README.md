@@ -5,13 +5,10 @@
 [![Version](https://img.shields.io/badge/version-0.6.2-blue.svg)](CHANGELOG.md)
 [![R](https://img.shields.io/badge/R-%3E%3D%204.1-brightgreen.svg)](https://www.r-project.org/)
 ![Shiny](https://img.shields.io/badge/framework-Shiny-1f77b4)
-![GitHub contributors](https://img.shields.io/github/contributors/jiehua1995/HistoneMod)
 ![GitHub last commit](https://img.shields.io/github/last-commit/jiehua1995/HistoneMod)
 ![GitHub repo size](https://img.shields.io/github/repo-size/jiehua1995/HistoneMod)
-![Bioinformatics](https://img.shields.io/badge/field-Bioinformatics-green)
-![Proteomics](https://img.shields.io/badge/data-Proteomics-orange)
-![Histone PTM](https://img.shields.io/badge/analysis-Histone%20PTM-red)
-![Maintained](https://img.shields.io/badge/status-actively%20maintained-brightgreen)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20831990.svg)](https://doi.org/10.5281/zenodo.20831990)
+
 
 `HistoneMod` is an R package for interactive analysis of histone post-translational modifications (PTMs) from Skyline-like peptide-level CSV exports. It provides a local Shiny application for end users together with a small programmatic API for preprocessing and visualization in scripted workflows.
 
@@ -140,3 +137,8 @@ HistoneMod::depends_check(install_missing = TRUE)
 Please use the issue tracker for bug reports, feature requests, and installation questions:
 
 - [GitHub Issues](https://github.com/jiehua1995/HistoneMod/issues)
+
+## Citation
+
+Jie Hua et al. (2026). jiehua1995/HistoneMod: v0.6.2. Zenodo. https://doi.org/10.5281/zenodo.20831990
+
