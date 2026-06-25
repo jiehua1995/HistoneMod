@@ -8,6 +8,7 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/jiehua1995/HistoneMod)
 ![GitHub repo size](https://img.shields.io/github/repo-size/jiehua1995/HistoneMod)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20831990.svg)](https://doi.org/10.5281/zenodo.20831990)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod?ref=badge_shield)
 
 
 `HistoneMod` is an R package for interactive analysis of histone post-translational modifications (PTMs) from Skyline-like peptide-level CSV exports. It provides a local Shiny application for end users together with a small programmatic API for preprocessing and visualization in scripted workflows.
@@ -142,3 +143,7 @@ Please use the issue tracker for bug reports, feature requests, and installation
 
 Jie Hua et al. (2026). jiehua1995/HistoneMod: v0.6.2. Zenodo. https://doi.org/10.5281/zenodo.20831990
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod?ref=badge_large)
