@@ -1,14 +1,19 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+message: "If you use HistoneMod in your research, please cite it using the metadata below."
+title: "HistoneMod: Quantification of Histone Post-Translational Modifications"
+type: software
 authors:
-- family-names: "YOUR_NAME_HERE"
-  given-names: "YOUR_NAME_HERE"
-  orcid: "https://orcid.org/0000-0000-0000-0000"
-- family-names: "Lisa"
-  given-names: "Mona"
-  orcid: "https://orcid.org/0000-0000-0000-0000"
-title: "HistoneMod"
-version: 1.0.0
-doi: 10.5281/zenodo.1234
-date-released: 2026-06-25
+- family-names: "Hua"
+  given-names: "Jie"
+- family-names: "Borso"
+  given-names: "Marco"
+- family-names: "Bozdag"
+  given-names: "Beyza"
+- family-names: "Imhof"
+  given-names: "Axel"
+version: "0.6.2"
+date-released: 2026-06-24
+doi: "10.5281/zenodo.20831990"
 url: "https://github.com/jiehua1995/HistoneMod"
+repository-code: "https://github.com/jiehua1995/HistoneMod"
+license: "MIT"
