@@ -15,7 +15,7 @@ Description: Runs a local 'shiny' application for quantitative analysis of
     together with plot export, table export, and quick PDF reporting. A small
     programmatic API is also included for preprocessing and plotting in
     scripted analyses.
-License: MIT
+License: MIT + file LICENSE
 URL: https://github.com/jiehua1995/HistoneMod
 BugReports: https://github.com/jiehua1995/HistoneMod/issues
 Encoding: UTF-8

@@ -1,0 +1,26 @@
+citHeader("To cite HistoneMod in publications, please use:")
+
+bibentry(
+bibtype = "Manual",
+title = "HistoneMod: Quantification of Histone Post-Translational Modifications",
+author = c(
+person(given = "Jie", family = "Hua"),
+person(given = "Marco", family = "Borso"),
+person(given = "Beyza", family = "Bozdag"),
+person(given = "Axel", family = "Imhof")
+),
+year = "2026",
+note = sprintf(
+"R package v %s, software archived on Zenodo",
+meta$Version
+),
+doi = "10.5281/zenodo.20831990",
+url = "https://doi.org/10.5281/zenodo.20831990",
+textVersion = paste0(
+"Hua J, Borso M, Bozdag B, and Imhof A (2026). ",
+"\"HistoneMod: Quantification of Histone Post-Translational Modifications.\" ",
+"R package v", meta$Version,
+", software archived on Zenodo. ",
+"https://doi.org/10.5281/zenodo.20831990"
+)
+)

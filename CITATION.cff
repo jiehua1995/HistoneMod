@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use HistoneMod in your research, please cite it using the metadata below."
+title: "HistoneMod: Quantification of Histone Post-Translational Modifications"
+type: software
+authors:
+  - family-names: "Hua"
+given-names: "Jie"
+- family-names: "Borso"
+given-names: "Marco"
+- family-names: "Bozdag"
+given-names: "Beyza"
+- family-names: "Imhof"
+given-names: "Axel"
+version: "0.6.2"
+date-released: "2026-06-24"
+doi: "10.5281/zenodo.20831990"
+repository-code: "https://github.com/jiehua1995/HistoneMod"
+license: "MIT"

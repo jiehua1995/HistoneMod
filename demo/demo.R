@@ -28,3 +28,5 @@ cat(" ", copy_dir, "\n")
 cat("\nLaunch the app with:\n")
 cat("  HistoneMod::runHistoneMod()\n")
 cat("Then either click 'Load Demo Data' or upload the copied CSV files.\n")
+
+usethis::use_citation()
