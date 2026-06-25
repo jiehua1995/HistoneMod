@@ -142,6 +142,4 @@ Please use the issue tracker for bug reports, feature requests, and installation
 
 Jie Hua et al. (2026). jiehua1995/HistoneMod: v0.6.2. Zenodo. https://doi.org/10.5281/zenodo.20831990
 
-
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod.svg?type=large&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod?ref=badge_large&issueType=license)
-
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod?ref=badge_shield&issueType=security)
