@@ -7,7 +7,7 @@
 ![Shiny](https://img.shields.io/badge/framework-Shiny-1f77b4)
 ![GitHub last commit](https://img.shields.io/github/last-commit/jiehua1995/HistoneMod)
 ![GitHub repo size](https://img.shields.io/github/repo-size/jiehua1995/HistoneMod)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20831990.svg)](https://doi.org/10.5281/zenodo.20831990)
+<a href="https://doi.org/10.5281/zenodo.20831990"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.20831990.svg" alt="DOI"></a>
 
 
 `HistoneMod` is an R package for interactive analysis of histone post-translational modifications (PTMs) from Skyline-like peptide-level CSV exports. It provides a local Shiny application for end users together with a small programmatic API for preprocessing and visualization in scripted workflows.
