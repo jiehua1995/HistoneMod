@@ -13,6 +13,10 @@ navbar:
       href: https://github.com/jiehua1995/HistoneMod/blob/main/CHANGELOG.md
 
 reference:
+- title: Overview
+  desc: Package-level documentation.
+  contents:
+  - HistoneMod-package
 - title: Run HistoneMod
   desc: Launch the packaged Shiny application.
   contents:
