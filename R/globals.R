@@ -7,5 +7,6 @@ utils::globalVariables(c(
   "ci95", "err", "mean_value", "sd_value", "se", "n", "value", "metric",
   "direction", "p_adj", "effect", "sample", "feature", ".data",
   "predicted", "dose", "n_replicates", "power", "time",
-  "effect_a", "effect_b", "occupancy", "site", "pattern"
+  "effect_a", "effect_b", "occupancy", "site", "pattern", "protein",
+  "component", "loading", "deviation"
 ))

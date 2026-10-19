@@ -47,12 +47,26 @@ reference:
   desc: Build publication-ready plots from processed data.
   contents:
   - plot_pca
+  - plot_pca_scree
+  - plot_pca_loadings
   - plot_heatmap
   - plot_barplot_single
   - plot_volcano
+  - plot_effect_heatmap
   - plot_composition
+  - plot_site_map
   - plot_qc_missingness
   - plot_qc_cv
+  - plot_sample_correlation
+  - plot_missingness_tile
+  - plot_rt_consistency
+- title: Plot styling
+  desc: Consistent themes and colour-blind-friendly palettes.
+  contents:
+  - theme_histonemod
+  - histonemod_palette
+  - scale_colour_histonemod
+  - scale_fill_histonemod
 - title: Site-level analysis
   desc: Parse modification sites, estimate occupancy and analyse cross-talk.
   contents:

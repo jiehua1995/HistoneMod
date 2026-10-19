@@ -4,7 +4,12 @@
 \alias{dose_server}
 \title{Dose-response module server}
 \usage{
-dose_server(id, data_reactive, value_col = shiny::reactive("Percentage"))
+dose_server(
+  id,
+  data_reactive,
+  value_col = shiny::reactive("Percentage"),
+  on_export = function(plot, prefix, width = 8, height = 6) invisible(NULL)
+)
 }
 \arguments{
 \item{id}{Module id.}
@@ -12,6 +17,8 @@ dose_server(id, data_reactive, value_col = shiny::reactive("Percentage"))
 \item{data_reactive}{Reactive returning the processed data frame.}
 
 \item{value_col}{Reactive returning the numeric value column.}
+
+\item{on_export}{Callback used to open the export dialog.}
 }
 \value{
 Invisibly \code{NULL}.

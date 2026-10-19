@@ -27,6 +27,8 @@ dose_ui <- function(id) {
       div(class = "col-md-5", div(class = "plot-container", DTOutput(ns("curve_table"))))
     ),
     div(class = "text-end mb-2",
+      actionButton(ns("export_plot"), "Download Plot", icon = icon("download"),
+                   class = "btn btn-primary btn-sm"),
       downloadButton(ns("download_fits"), "Download fits (CSV)", class = "btn btn-outline-secondary btn-sm")
     )
   )
@@ -37,11 +39,13 @@ dose_ui <- function(id) {
 #' @param id Module id.
 #' @param data_reactive Reactive returning the processed data frame.
 #' @param value_col Reactive returning the numeric value column.
+#' @param on_export Callback used to open the export dialog.
 #'
 #' @return Invisibly `NULL`.
 #' @keywords internal
 dose_server <- function(id, data_reactive,
-                        value_col = shiny::reactive("Percentage")) {
+                        value_col = shiny::reactive("Percentage"),
+                        on_export = function(plot, prefix, width = 8, height = 6) invisible(NULL)) {
   shiny::moduleServer(id, function(input, output, session) {
     numeric_columns <- shiny::reactive({
       data <- data_reactive()
@@ -93,6 +97,19 @@ dose_server <- function(id, data_reactive,
         value_col = value_col(),
         group_cols = c("Protein.Name", "Peptide.Note")
       )
+    })
+
+    shiny::observeEvent(input$export_plot, {
+      data <- data_reactive()
+      shiny::req(data)
+      plot <- plot_dose_response(
+        data[as.character(data$Protein.Name) == input$protein, , drop = FALSE],
+        fits = fits(),
+        dose_col = input$dose_col,
+        value_col = value_col(),
+        group_cols = c("Protein.Name", "Peptide.Note")
+      )
+      on_export(plot, "Dose_response", width = 9, height = 6)
     })
 
     output$curves <- renderPlot({

@@ -12,7 +12,7 @@
   )
   version <- as.character(version)[1L]
   if (is.na(version) || !nzchar(trimws(version))) {
-    version <- "0.8.0"
+    version <- "0.9.0"
   }
   trimws(version)
 }

@@ -8,7 +8,8 @@ differential_server(
   id,
   data_reactive,
   value_col = shiny::reactive("Percentage"),
-  group_order = shiny::reactive(NULL)
+  group_order = shiny::reactive(NULL),
+  on_export = function(plot, prefix, width = 8, height = 6) invisible(NULL)
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ differential_server(
 \item{value_col}{Reactive returning the name of the numeric value column.}
 
 \item{group_order}{Reactive returning an optional group order vector.}
+
+\item{on_export}{Callback used to open the export dialog.}
 }
 \value{
 Invisibly \code{NULL}.

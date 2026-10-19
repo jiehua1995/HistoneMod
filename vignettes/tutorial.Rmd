@@ -116,6 +116,28 @@ annotated <- HistoneMod::annotate_sites(sites)
 marks <- HistoneMod::histone_marks()
 ```
 
+## Publication-oriented visualizations
+
+Several plots are designed for figures and supplementary material:
+
+```r
+# Site positions along the protein sequence (occupancy or effect)
+HistoneMod::plot_site_map(occupancy)
+
+# Effect sizes across all pairwise comparisons with significance stars
+res <- HistoneMod::differential_analysis(data, transform = "clr")
+HistoneMod::plot_effect_heatmap(res)
+
+# PCA diagnostics
+HistoneMod::plot_pca_scree(data, transform = "clr")
+HistoneMod::plot_pca_loadings(data, transform = "clr", pc = 1, top = 10)
+
+# QC views
+HistoneMod::plot_sample_correlation(data, transform = "clr")
+HistoneMod::plot_missingness_tile(data)
+HistoneMod::plot_rt_consistency(data)
+```
+
 `parse_peptide_sites()` prefers Skyline `Peptide Modified Sequence Unimod Ids`
 and falls back to the `Peptide.Note` naming convention. Occupancy is calculated
 within each peptide backbone and includes the unmodified state in the
@@ -266,11 +288,15 @@ also exports a small set of analysis helpers:
   `fit_dose_response()`, `fit_time_course()`, `estimate_power()`,
   `run_histonemod_batch()`, `compare_experiments()`
 - annotation: `histone_marks()`, `annotate_sites()`, `summarise_by_class()`
-- plotting: `plot_pca()`, `plot_heatmap()`, `plot_barplot_single()`,
-  `plot_volcano()`, `plot_composition()`, `plot_qc_missingness()`,
-  `plot_qc_cv()`, `plot_occupancy()`, `plot_crosstalk()`,
-  `plot_mark_classes()`, `plot_dose_response()`, `plot_time_course()`,
-  `plot_power_curve()`, `plot_experiment_comparison()`
+- plotting: `plot_pca()`, `plot_pca_scree()`, `plot_pca_loadings()`,
+  `plot_heatmap()`, `plot_barplot_single()`, `plot_volcano()`,
+  `plot_effect_heatmap()`, `plot_composition()`, `plot_site_map()`,
+  `plot_qc_missingness()`, `plot_qc_cv()`, `plot_sample_correlation()`,
+  `plot_missingness_tile()`, `plot_rt_consistency()`, `plot_occupancy()`,
+  `plot_crosstalk()`, `plot_mark_classes()`, `plot_dose_response()`,
+  `plot_time_course()`, `plot_power_curve()`, `plot_experiment_comparison()`
+- styling: `theme_histonemod()`, `histonemod_palette()`,
+  `scale_colour_histonemod()`, `scale_fill_histonemod()`
 - projects and reporting: `save_session()`, `load_session()`,
   `save_project()`, `load_project()`, `export_analysis_bundle()`,
   `methods_text()`, `statistics_table()`, `figure_legend()`

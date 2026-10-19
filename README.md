@@ -2,7 +2,7 @@
 
 ## ⭐ If you find this repository useful for your research, please consider giving it a star!
 
-[![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.9.0-blue.svg)](CHANGELOG.md)
 [![R](https://img.shields.io/badge/R-%3E%3D%204.1-brightgreen.svg)](https://www.r-project.org/)
 ![Shiny](https://img.shields.io/badge/framework-Shiny-1f77b4)
 ![GitHub last commit](https://img.shields.io/github/last-commit/jiehua1995/HistoneMod)
@@ -20,12 +20,14 @@ Starting with version `0.6.2`, HistoneMod is distributed as an installable R pac
 - Reads large Skyline exports quickly and lets you map non-standard column names.
 - Computes relative peptide abundances across replicates and groups, with optional light/heavy ratio and spike-in quantification.
 - Provides interactive PCA, heatmap, barplot, composition, differential-analysis, site-occupancy, cross-talk, dose-response, and QC views in a single Shiny workflow.
+- Includes publication-oriented figures: histone site map, effect-size heatmap, PCA scree/loadings, sample-correlation heatmap, missingness tile and RT-consistency views.
 - Supports compositional transforms (CLR/logit/log2), configurable missing-value handling, group ordering and group colours.
 - Performs global group comparisons with Welch t-tests plus BH correction and volcano plots.
 - Parses Skyline Unimod IDs into histone modification sites and estimates site occupancy and combinatorial cross-talk.
 - Annotates sites with a curated histone mark table (canonical names, functional classes, writers/erasers/readers).
 - Fits dose-response curves (EC50) and time-course profiles, and estimates statistical power for experiment planning.
 - Runs batches of Skyline exports and compares treatment effects between two experiments.
+- Exports any analysis plot with a reusable format/size/DPI dialog.
 - Supports project files, reproducible analysis bundles, session save/load, methods text and figure legends, and quick PDF reporting.
 - Exposes reusable preprocessing, analysis and plotting helpers for scripted analyses.
 
@@ -130,7 +132,12 @@ Most users only need the Shiny interface. For scripted analyses, the following f
 - `fit_time_course()`, `plot_time_course()`
 - `simulate_histone_data()`, `estimate_power()`, `plot_power_curve()`
 - `run_histonemod_batch()`, `compare_experiments()`, `plot_experiment_comparison()`
-- `plot_pca()`, `plot_heatmap()`, `plot_barplot_single()`
+- `plot_pca()`, `plot_pca_scree()`, `plot_pca_loadings()`, `plot_heatmap()`,
+  `plot_barplot_single()`
+- `plot_site_map()`, `plot_effect_heatmap()`
+- `plot_sample_correlation()`, `plot_missingness_tile()`, `plot_rt_consistency()`
+- `theme_histonemod()`, `histonemod_palette()`, `scale_colour_histonemod()`,
+  `scale_fill_histonemod()`
 - `save_session()`, `load_session()`, `save_project()`, `load_project()`,
   `export_analysis_bundle()`, `methods_text()`, `statistics_table()`,
   `figure_legend()`
@@ -159,6 +166,6 @@ Please use the issue tracker for bug reports, feature requests, and installation
 
 ## Citation
 
-Jie Hua et al. (2026). jiehua1995/HistoneMod: v0.8.0. Zenodo. https://doi.org/10.5281/zenodo.20831990
+Jie Hua et al. (2026). jiehua1995/HistoneMod: v0.9.0. Zenodo. https://doi.org/10.5281/zenodo.20831990
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod?ref=badge_shield&issueType=security)

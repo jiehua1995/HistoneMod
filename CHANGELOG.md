@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.9.0] - 2026-10-19
+
+### ✨ Added
+- **Histone site map**: `plot_site_map()` draws a lollipop map of modification sites along protein sequences, showing occupancy or group effects with canonical mark labels.
+- **Effect-size heatmap**: `plot_effect_heatmap()` displays effect sizes across all pairwise comparisons with significance stars and clustered rows.
+- **PCA diagnostics**: `plot_pca_scree()` and `plot_pca_loadings()` show variance explained and the peptides driving each component.
+- **QC visualisations**: `plot_sample_correlation()`, `plot_missingness_tile()` and `plot_rt_consistency()` add sample correlation, per-peptide missingness and retention-time drift views.
+- **Generic plot export**: a reusable export dialog with format/size/DPI controls is now available for the Differential, Composition, Sites, QC and Dose-response tabs.
+- **Heatmap upgrades**: row protein and mark-class annotation, optional row gaps, alongside the existing group annotation and row z-score options.
+- **Plot styling**: `theme_histonemod()`, `histonemod_palette()` and colour/fill scales provide a consistent theme and colour-blind-friendly palettes (Okabe-Ito, Tol, viridis).
+
+### 🔧 Changed
+- Version bumped to `0.9.0`.
+- The Sites tab gained a Site map view; the Differential tab gained an effect-size heatmap; the PCA tab gained scree and loadings plots; the QC tab gained correlation, missingness and RT views.
+
+---
+
 ## [0.8.0] - 2026-10-19
 
 ### ✨ Added

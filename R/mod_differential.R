@@ -47,7 +47,17 @@ differential_ui <- function(id) {
     ),
     div(
       class = "text-end mb-2",
+      actionButton(ns("export_plot"), "Download Plot", icon = icon("download"),
+                   class = "btn btn-primary btn-sm"),
       downloadButton(ns("download_csv"), "Download results (CSV)", class = "btn btn-outline-secondary btn-sm")
+    ),
+    hr(),
+    h5(style = "font-weight: 600; color: #1e293b;", "Effect-size heatmap"),
+    div(class = "plot-container", withSpinner(plotOutput(ns("effect_heatmap"), height = "360px"))),
+    div(
+      class = "text-end mb-2",
+      actionButton(ns("export_effect_heatmap"), "Download Plot", icon = icon("download"),
+                   class = "btn btn-primary btn-sm")
     )
   )
 }
@@ -58,12 +68,14 @@ differential_ui <- function(id) {
 #' @param data_reactive Reactive returning the processed data frame.
 #' @param value_col Reactive returning the name of the numeric value column.
 #' @param group_order Reactive returning an optional group order vector.
+#' @param on_export Callback used to open the export dialog.
 #'
 #' @return Invisibly `NULL`.
 #' @keywords internal
 differential_server <- function(id, data_reactive,
                                 value_col = shiny::reactive("Percentage"),
-                                group_order = shiny::reactive(NULL)) {
+                                group_order = shiny::reactive(NULL),
+                                on_export = function(plot, prefix, width = 8, height = 6) invisible(NULL)) {
   shiny::moduleServer(id, function(input, output, session) {
     group_choices <- shiny::reactive({
       data <- data_reactive()
@@ -107,6 +119,27 @@ differential_server <- function(id, data_reactive,
         within_protein = isTRUE(input$within_protein),
         min_n = as.integer(input$min_n)
       )
+    })
+
+    shiny::observeEvent(input$export_plot, {
+      res <- results()
+      shiny::req(nrow(res) > 0)
+      on_export(plot_volcano(res, alpha = input$alpha), "Differential_volcano",
+                width = 9, height = 6)
+    })
+
+    effect_heatmap_object <- shiny::reactive({
+      res <- results()
+      shiny::validate(shiny::need(nrow(res) > 0, "No comparisons were returned."))
+      plot_effect_heatmap(res)
+    })
+
+    shiny::observeEvent(input$export_effect_heatmap, {
+      on_export(effect_heatmap_object(), "Effect_heatmap", width = 9, height = 6)
+    })
+
+    output$effect_heatmap <- renderPlot({
+      effect_heatmap_object()
     })
 
     output$volcano <- renderPlot({

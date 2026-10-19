@@ -31,6 +31,8 @@ composition_ui <- function(id) {
     div(class = "plot-container", withSpinner(plotOutput(ns("composition"), height = "520px"))),
     div(
       class = "text-end mb-2",
+      actionButton(ns("export_composition"), "Download Plot", icon = icon("download"),
+                   class = "btn btn-primary btn-sm"),
       downloadButton(ns("download_composition"), "Download composition table (CSV)",
                      class = "btn btn-outline-secondary btn-sm")
     ),
@@ -52,6 +54,8 @@ composition_ui <- function(id) {
     ),
     div(
       class = "text-end mb-2",
+      actionButton(ns("export_metrics"), "Download Plot", icon = icon("download"),
+                   class = "btn btn-primary btn-sm"),
       downloadButton(ns("download_metrics"), "Download metrics (CSV)",
                      class = "btn btn-outline-secondary btn-sm")
     ),
@@ -67,6 +71,8 @@ composition_ui <- function(id) {
       ),
       div(
         class = "text-end mb-2",
+        actionButton(ns("export_class"), "Download Plot", icon = icon("download"),
+                     class = "btn btn-primary btn-sm"),
         downloadButton(ns("download_class"), "Download mark classes (CSV)",
                        class = "btn btn-outline-secondary btn-sm")
       )
@@ -80,12 +86,14 @@ composition_ui <- function(id) {
 #' @param data_reactive Reactive returning the processed data frame.
 #' @param value_col Reactive returning the name of the numeric value column.
 #' @param group_order Reactive returning an optional group order vector.
+#' @param on_export Callback used to open the export dialog.
 #'
 #' @return Invisibly `NULL`.
 #' @keywords internal
 composition_server <- function(id, data_reactive,
                                value_col = shiny::reactive("Percentage"),
-                               group_order = shiny::reactive(NULL)) {
+                               group_order = shiny::reactive(NULL),
+                               on_export = function(plot, prefix, width = 8, height = 6) invisible(NULL)) {
   shiny::moduleServer(id, function(input, output, session) {
     proteins <- shiny::reactive({
       data <- data_reactive()
@@ -111,6 +119,10 @@ composition_server <- function(id, data_reactive,
         palette = input$palette,
         summarise = isTRUE(input$summarise)
       )
+    })
+
+    shiny::observeEvent(input$export_composition, {
+      on_export(composition_data(), "Composition", width = 10, height = 6)
     })
 
     output$composition <- renderPlot({
@@ -162,7 +174,7 @@ composition_server <- function(id, data_reactive,
       )
     })
 
-    output$metrics_plot <- renderPlot({
+    metrics_plot_object <- shiny::reactive({
       met <- metrics()
       shiny::validate(shiny::need(!is.null(met) && nrow(met) > 0, "Enter at least one valid metric."))
       met$Group <- factor(met$Group, levels = group_levels(met$Group, group_order()))
@@ -184,6 +196,14 @@ composition_server <- function(id, data_reactive,
           legend.position = "none"
         ) +
         scale_fill_viridis_d()
+    })
+
+    shiny::observeEvent(input$export_metrics, {
+      on_export(metrics_plot_object(), "Composition_metrics", width = 9, height = 5)
+    })
+
+    output$metrics_plot <- renderPlot({
+      metrics_plot_object()
     })
 
     output$metrics_table <- renderDT({
@@ -219,13 +239,21 @@ composition_server <- function(id, data_reactive,
       )
     })
 
-    output$class_plot <- renderPlot({
+    class_plot_object <- shiny::reactive({
       summary <- class_summary()
       shiny::validate(shiny::need(
         !is.null(summary) && nrow(summary) > 0,
         "No annotated sites to summarise."
       ))
       plot_mark_classes(summary, group_order = group_order())
+    })
+
+    shiny::observeEvent(input$export_class, {
+      on_export(class_plot_object(), "Mark_classes", width = 9, height = 5)
+    })
+
+    output$class_plot <- renderPlot({
+      class_plot_object()
     })
 
     output$class_table <- renderDT({

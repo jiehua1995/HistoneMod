@@ -298,6 +298,23 @@ histonemod_ui <- function() {
                    ),
                    div(class = "plot-container",
                      withSpinner(plotOutput("pca_plot", height="600px"))
+                   ),
+                   div(class = "row mt-3",
+                     div(class = "col-md-5",
+                       h5(style = "font-weight: 600; color: #1e293b;", "Scree plot"),
+                       div(class = "plot-container", plotOutput("pca_scree", height = "280px")),
+                       div(class = "text-end",
+                         actionButton("export_pca_scree", "Download Plot", icon = icon("download"),
+                                      class = "btn btn-primary btn-sm"))
+                     ),
+                     div(class = "col-md-7",
+                       h5(style = "font-weight: 600; color: #1e293b;", "Loadings"),
+                       numericInput("pca_loading_pc", "Principal component", value = 1, min = 1, max = 10, step = 1),
+                       div(class = "plot-container", plotOutput("pca_loadings", height = "280px")),
+                       div(class = "text-end",
+                         actionButton("export_pca_loadings", "Download Plot", icon = icon("download"),
+                                      class = "btn btn-primary btn-sm"))
+                     )
                    )
           ),
           ##### Tab: Heatmap #####

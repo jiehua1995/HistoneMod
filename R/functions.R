@@ -503,6 +503,15 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis",
 #' @param scale Character; `"none"` (default) or `"row"` for row z-scores.
 #' @param show_group_annotation Logical; add sample group annotation when a
 #'   `Group` column is present.
+#' @param show_protein_annotation Logical; add a protein annotation column for
+#'   the peptides when a `Protein.Name` column is present.
+#' @param show_mark_class_annotation Logical; add a mark-class annotation column
+#'   derived from the parsed modification sites.
+#' @param annotation_row Optional data frame of row annotations (rownames must
+#'   match peptide names). When supplied it overrides the automatic protein
+#'   annotation.
+#' @param gaps_row Optional integer vector of row indices at which to insert
+#'   gaps (passed to `pheatmap`).
 #'
 #' @return A `pheatmap` result object.
 #' @export
@@ -517,7 +526,11 @@ plot_heatmap <- function(
   value_col = "Percentage",
   missing = c("zero", "drop", "min"),
   scale = c("none", "row"),
-  show_group_annotation = TRUE
+  show_group_annotation = TRUE,
+  show_protein_annotation = TRUE,
+  show_mark_class_annotation = FALSE,
+  annotation_row = NULL,
+  gaps_row = NULL
 ) {
   missing <- match.arg(missing)
   scale <- match.arg(scale)
@@ -600,6 +613,62 @@ plot_heatmap <- function(
     annotation$Replicate.Name <- NULL
     annotation_col <- annotation[colnames(heat_mat), , drop = FALSE]
   }
+
+  annotation_row_final <- NULL
+  if (is.data.frame(annotation_row)) {
+    annotation_row_final <- annotation_row[
+      rownames(heat_mat),
+      ,
+      drop = FALSE
+    ]
+  } else if (isTRUE(show_protein_annotation) && "Protein.Name" %in% colnames(data_merge)) {
+    row_annotation <- as.data.frame(
+      unique(data_merge[, c("Peptide.Note", "Protein.Name"), drop = FALSE]),
+      stringsAsFactors = FALSE
+    )
+    rownames(row_annotation) <- row_annotation$Peptide.Note
+    row_annotation$Peptide.Note <- NULL
+    annotation_row_final <- row_annotation[rownames(heat_mat), , drop = FALSE]
+  }
+
+  if (isTRUE(show_mark_class_annotation) && "Peptide.Note" %in% colnames(data_merge)) {
+    parsed <- tryCatch(parse_peptide_sites(data_merge), error = function(e) NULL)
+    if (!is.null(parsed) && nrow(parsed) > 0 && "is_modified" %in% names(parsed)) {
+      modified <- parsed[parsed$is_modified %in% TRUE, , drop = FALSE]
+      modified <- modified[!duplicated(modified$row_id), , drop = FALSE]
+      if (nrow(modified) > 0) {
+        site_table <- data.frame(
+          protein = as.character(modified$Protein.Name),
+          position = modified$position,
+          mod = modified$mod,
+          stringsAsFactors = FALSE
+        )
+        annotated <- tryCatch(annotate_sites(site_table), error = function(e) NULL)
+        if (!is.null(annotated) && "class" %in% names(annotated)) {
+          feature_names <- as.character(data_merge$Peptide.Note[modified$row_id])
+          class_map <- stats::setNames(annotated$class, feature_names)
+          mark_class <- vapply(rownames(heat_mat), function(feature) {
+            values <- class_map[names(class_map) == feature]
+            values <- values[!is.na(values)]
+            if (length(values) > 0) values[1] else "unmodified"
+          }, character(1))
+          mark_class_df <- data.frame(
+            MarkClass = mark_class,
+            row.names = rownames(heat_mat),
+            stringsAsFactors = FALSE
+          )
+          annotation_row_final <- if (is.null(annotation_row_final)) {
+            mark_class_df
+          } else {
+            cbind(
+              annotation_row_final[rownames(mark_class_df), , drop = FALSE],
+              mark_class_df
+            )
+          }
+        }
+      }
+    }
+  }
   
   # Select color palette
   colors <- switch(color_palette,
@@ -638,6 +707,8 @@ plot_heatmap <- function(
     border_color = "grey50",
     angle_col = 45,
     annotation_col = annotation_col,
+    annotation_row = annotation_row_final,
+    gaps_row = gaps_row,
     main = "",
     silent = TRUE
   )
@@ -878,7 +949,7 @@ plot_barplot_single <- function(
 # ------------------------
 # 5. App version helpers
 # ------------------------
-HISTONEMOD_FALLBACK_VERSION <- "0.8.0"
+HISTONEMOD_FALLBACK_VERSION <- "0.9.0"
 
 # Internal helper that resolves the package version from DESCRIPTION.
 # When the package is loaded with pkgload (development), system.file() is
@@ -973,6 +1044,67 @@ get_latest_release_version_cached <- local({
     cached
   }
 })
+
+##### Plot Export Helpers #####
+# Internal helper used by the generic export dialog in server.R.
+
+#' Save a ggplot or pheatmap object
+#'
+#' @param plot A ggplot object or a pheatmap result.
+#' @param file Output file.
+#' @param format Image format.
+#' @param width,height Dimensions in inches.
+#' @param dpi Resolution for raster formats.
+#'
+#' @return Invisibly returns the output file.
+#' @noRd
+save_plot_object <- function(plot, file, format = "png", width = 8, height = 6, dpi = 300) {
+  format <- tolower(as.character(format)[1])
+  width <- suppressWarnings(as.numeric(width))
+  height <- suppressWarnings(as.numeric(height))
+  dpi <- suppressWarnings(as.numeric(dpi))
+  if (!is.finite(width) || width <= 0) width <- 8
+  if (!is.finite(height) || height <= 0) height <- 6
+  if (!is.finite(dpi) || dpi <= 0) dpi <- 300
+
+  is_pheatmap <- inherits(plot, "pheatmap") ||
+    (is.list(plot) && !is.null(plot$gtable) && inherits(plot$gtable, "gtable"))
+  if (is_pheatmap) {
+    if (identical(format, "pdf")) {
+      grDevices::pdf(file, width = width, height = height)
+    } else if (identical(format, "svg")) {
+      grDevices::svg(file, width = width, height = height)
+    } else if (identical(format, "eps")) {
+      grDevices::setEPS()
+      grDevices::postscript(file, width = width, height = height)
+    } else {
+      device <- switch(format,
+                       "jpeg" = grDevices::jpeg,
+                       "tiff" = grDevices::tiff,
+                       "bmp" = grDevices::bmp,
+                       grDevices::png)
+      device(file, width = width, height = height, units = "in", res = dpi)
+    }
+    on.exit(tryCatch(grDevices::dev.off(), error = function(e) NULL), add = TRUE)
+    grid::grid.newpage()
+    grid::grid.draw(plot$gtable)
+    return(invisible(file))
+  }
+
+  if (inherits(plot, "ggplot") || inherits(plot, "gg")) {
+    ggplot2::ggsave(
+      filename = file,
+      plot = plot,
+      width = width,
+      height = height,
+      dpi = dpi,
+      device = format
+    )
+    return(invisible(file))
+  }
+
+  stop("Unsupported plot object; expected a ggplot or pheatmap result.", call. = FALSE)
+}
 
 ##### Download Module (Legacy Helper) #####
 # NOTE: The main app now uses the export modals in server.R.

@@ -13,6 +13,68 @@ histonemod_server <- function(input, output, session) {
   export_settings_hm <- reactiveVal(list(format = "png", width = 10, height = 8, dpi = 300))
   export_settings_bar <- reactiveVal(list(format = "png", width = 8, height = 6, dpi = 300))
 
+  ##### Generic Plot Export (used by analysis tabs) #####
+  generic_export_state <- reactiveVal(NULL)
+
+  open_export_modal <- function(plot, prefix = "plot", width = 8, height = 6) {
+    generic_export_state(list(plot = plot, prefix = prefix))
+    showModal(modalDialog(
+      title = div(style = "font-size: 20px; font-weight: 600; color: #1e293b;",
+                  icon("image"), " Export ", prefix),
+      size = "m",
+      easyClose = TRUE,
+      div(
+        class = "p-3",
+        selectInput(
+          "generic_export_format", "Format",
+          choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg",
+                      "JPEG" = "jpeg", "TIFF" = "tiff", "EPS" = "eps", "BMP" = "bmp"),
+          selected = "png"
+        ),
+        div(
+          class = "row",
+          div(class = "col-md-6 mb-3",
+              numericInput("generic_export_width", "Width (inches)", value = width,
+                           min = 1, max = 20, step = 0.5)),
+          div(class = "col-md-6 mb-3",
+              numericInput("generic_export_height", "Height (inches)", value = height,
+                           min = 1, max = 20, step = 0.5))
+        ),
+        selectInput("generic_export_dpi", "DPI (raster formats)",
+                    choices = c("300" = 300, "600" = 600, "900" = 900), selected = 300)
+      ),
+      footer = tagList(
+        modalButton("Cancel"),
+        downloadButton("download_generic_plot", "Download")
+      )
+    ))
+  }
+
+  output$download_generic_plot <- downloadHandler(
+    filename = function() {
+      state <- generic_export_state()
+      prefix <- if (is.null(state)) "plot" else state$prefix
+      format <- if (is.null(input$generic_export_format)) "png" else input$generic_export_format
+      paste0(gsub("[^A-Za-z0-9_-]", "_", prefix), "_", Sys.Date(), ".", format)
+    },
+    content = function(file) {
+      state <- generic_export_state()
+      req(state)
+      format <- if (is.null(input$generic_export_format)) "png" else input$generic_export_format
+      tryCatch({
+        save_plot_object(
+          state$plot, file, format,
+          width = input$generic_export_width,
+          height = input$generic_export_height,
+          dpi = input$generic_export_dpi
+        )
+        removeModal()
+      }, error = function(e) {
+        shinyalert("Download failed", conditionMessage(e), type = "error")
+      })
+    }
+  )
+
   ##### Small Helpers (Input Picking / Numeric Safety) #####
   pick_val <- function(input_val, stored_val, default_val) {
     if (!is.null(input_val) && length(input_val) > 0 && !identical(input_val, "")) return(input_val)
@@ -1037,6 +1099,43 @@ histonemod_server <- function(input, output, session) {
     }, error = function(e) {
       plot_error_panel(e)
     })
+  })
+
+  pca_scree_reactive <- reactive({
+    req(filtered_data_reactive())
+    plot_pca_scree(
+      filtered_data_reactive(),
+      value_col = value_col_reactive(),
+      transform = transform_mode(),
+      missing = missing_mode()
+    )
+  })
+
+  pca_loadings_reactive <- reactive({
+    req(filtered_data_reactive())
+    plot_pca_loadings(
+      filtered_data_reactive(),
+      value_col = value_col_reactive(),
+      transform = transform_mode(),
+      missing = missing_mode(),
+      pc = if (is.null(input$pca_loading_pc)) 1 else input$pca_loading_pc
+    )
+  })
+
+  output$pca_scree <- renderPlot({
+    tryCatch(pca_scree_reactive(), error = function(e) plot_error_panel(e))
+  })
+
+  output$pca_loadings <- renderPlot({
+    tryCatch(pca_loadings_reactive(), error = function(e) plot_error_panel(e))
+  })
+
+  observeEvent(input$export_pca_scree, {
+    open_export_modal(pca_scree_reactive(), "PCA_scree", width = 8, height = 4)
+  })
+
+  observeEvent(input$export_pca_loadings, {
+    open_export_modal(pca_loadings_reactive(), "PCA_loadings", width = 8, height = 5)
   })
 
   ##### Export Preview Images (PCA) #####
@@ -2278,9 +2377,14 @@ histonemod_server <- function(input, output, session) {
   )
 
   ##### New analysis tabs (Shiny modules) #####
-  differential_server("differential", filtered_data_reactive, value_col_reactive, group_order_reactive)
-  composition_server("composition", filtered_data_reactive, value_col_reactive, group_order_reactive)
-  sites_server("sites", ms1_data, sample_data, group_order_reactive)
-  qc_server("qc", filtered_data_reactive, value_col_reactive)
-  dose_server("dose", filtered_data_reactive, value_col_reactive)
+  differential_server("differential", filtered_data_reactive, value_col_reactive, group_order_reactive,
+                     on_export = open_export_modal)
+  composition_server("composition", filtered_data_reactive, value_col_reactive, group_order_reactive,
+                     on_export = open_export_modal)
+  sites_server("sites", ms1_data, sample_data, group_order_reactive,
+               on_export = open_export_modal)
+  qc_server("qc", filtered_data_reactive, value_col_reactive,
+            on_export = open_export_modal)
+  dose_server("dose", filtered_data_reactive, value_col_reactive,
+              on_export = open_export_modal)
 }

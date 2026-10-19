@@ -8,7 +8,8 @@ sites_server(
   id,
   ms1_reactive,
   sample_reactive,
-  group_order = shiny::reactive(NULL)
+  group_order = shiny::reactive(NULL),
+  on_export = function(plot, prefix, width = 8, height = 6) invisible(NULL)
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ sites_server(
 \item{sample_reactive}{Reactive returning the sample table.}
 
 \item{group_order}{Reactive returning an optional group order vector.}
+
+\item{on_export}{Callback used to open the export dialog.}
 }
 \value{
 Invisibly \code{NULL}.
