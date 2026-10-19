@@ -507,6 +507,8 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis",
 #'   the peptides when a `Protein.Name` column is present.
 #' @param show_mark_class_annotation Logical; add a mark-class annotation column
 #'   derived from the parsed modification sites.
+#' @param split_rows_by_protein Logical; order rows by protein and insert gaps
+#'   between proteins (disables row clustering).
 #' @param annotation_row Optional data frame of row annotations (rownames must
 #'   match peptide names). When supplied it overrides the automatic protein
 #'   annotation.
@@ -529,6 +531,7 @@ plot_heatmap <- function(
   show_group_annotation = TRUE,
   show_protein_annotation = TRUE,
   show_mark_class_annotation = FALSE,
+  split_rows_by_protein = FALSE,
   annotation_row = NULL,
   gaps_row = NULL
 ) {
@@ -596,6 +599,22 @@ plot_heatmap <- function(
     row_sds[!is.finite(row_sds) | row_sds == 0] <- 1
     heat_mat <- sweep(heat_mat - row_means, 1, row_sds, "/")
     heat_mat[!is.finite(heat_mat)] <- 0
+  }
+
+  if (isTRUE(split_rows_by_protein) && "Protein.Name" %in% names(data_merge)) {
+    mapping <- unique(data_merge[, c("Peptide.Note", "Protein.Name"), drop = FALSE])
+    row_protein <- mapping$Protein.Name[match(rownames(heat_mat), mapping$Peptide.Note)]
+    row_protein[is.na(row_protein)] <- "unknown"
+    ordering <- order(row_protein, rownames(heat_mat))
+    heat_mat <- heat_mat[ordering, , drop = FALSE]
+    counts <- as.integer(table(factor(
+      row_protein[ordering],
+      levels = unique(row_protein[ordering])
+    )))
+    if (length(counts) > 1) {
+      gaps_row <- cumsum(counts)[-length(counts)]
+    }
+    cluster_rows <- FALSE
   }
 
   # Sort columns by name if not clustering

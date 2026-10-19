@@ -48,6 +48,9 @@ test_that("plot_heatmap supports scaling, missing policy and annotation", {
 
   hm_marks <- plot_heatmap(data, show_mark_class_annotation = TRUE)
   expect_true(inherits(hm_marks, "pheatmap"))
+
+  hm_split <- plot_heatmap(data, split_rows_by_protein = TRUE)
+  expect_true(inherits(hm_split, "pheatmap"))
 })
 
 test_that("plot_barplot_single supports ordering, colours and error bars", {

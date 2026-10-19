@@ -18,6 +18,7 @@ plot_heatmap(
   show_group_annotation = TRUE,
   show_protein_annotation = TRUE,
   show_mark_class_annotation = FALSE,
+  split_rows_by_protein = FALSE,
   annotation_row = NULL,
   gaps_row = NULL
 )
@@ -55,6 +56,9 @@ the peptides when a \code{Protein.Name} column is present.}
 
 \item{show_mark_class_annotation}{Logical; add a mark-class annotation column
 derived from the parsed modification sites.}
+
+\item{split_rows_by_protein}{Logical; order rows by protein and insert gaps
+between proteins (disables row clustering).}
 
 \item{annotation_row}{Optional data frame of row annotations (rownames must
 match peptide names). When supplied it overrides the automatic protein
