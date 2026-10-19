@@ -2,7 +2,7 @@
 
 ## ⭐ If you find this repository useful for your research, please consider giving it a star!
 
-[![Version](https://img.shields.io/badge/version-0.6.2-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](CHANGELOG.md)
 [![R](https://img.shields.io/badge/R-%3E%3D%204.1-brightgreen.svg)](https://www.r-project.org/)
 ![Shiny](https://img.shields.io/badge/framework-Shiny-1f77b4)
 ![GitHub last commit](https://img.shields.io/github/last-commit/jiehua1995/HistoneMod)
@@ -17,9 +17,12 @@ Starting with version `0.6.2`, HistoneMod is distributed as an installable R pac
 ## Features
 
 - Validates `MS1` and `Sample` input tables before analysis.
-- Computes relative peptide abundances across replicates and groups.
-- Provides interactive PCA, heatmap, and barplot views in a single Shiny workflow.
-- Supports plot export, wide-format table export, and quick PDF reporting.
+- Reads large Skyline exports quickly and lets you map non-standard column names.
+- Computes relative peptide abundances across replicates and groups, with optional light/heavy ratio and spike-in quantification.
+- Provides interactive PCA, heatmap, barplot, composition, differential-analysis, and QC views in a single Shiny workflow.
+- Supports compositional transforms (CLR/logit/log2), configurable missing-value handling, group ordering and group colours.
+- Performs global group comparisons with Welch t-tests plus BH correction and volcano plots.
+- Supports plot export, wide-format table export, session save/load, and quick PDF reporting.
 - Exposes reusable preprocessing and plotting helpers for scripted analyses.
 
 ## Installation
@@ -79,7 +82,7 @@ The application expects two comma-separated CSV files. Example layouts are shown
 | SampleA_rep1 | SampleA | 1 |
 | SampleA_rep2 | SampleA | 2 |
 
-Because HistoneMod uses `read.csv()`, column names with spaces, such as `Protein Name`, are automatically converted by R to dotted names such as `Protein.Name` after import. Skyline exports with space-separated headers are therefore accepted. CSV files produced under different operating systems, language settings, or software versions may vary slightly, but standard comma-separated files are supported as long as the required columns are present.
+Because HistoneMod uses `read.csv()`-compatible import, column names with spaces, such as `Protein Name`, are automatically converted by R to dotted names such as `Protein.Name` after import. Skyline exports with space-separated headers are therefore accepted. CSV files produced under different operating systems, language settings, or software versions may vary slightly, but standard comma-separated files are supported as long as the required columns are present. Comma, semicolon, and tab delimiters are detected automatically, UTF-8 BOMs are handled, and columns can be remapped in the app when a Skyline report uses different names.
 
 ## Bundled demo data
 
@@ -108,13 +111,15 @@ vignette("tutorial", package = "HistoneMod")
 
 Most users only need the Shiny interface. For scripted analyses, the following functions are exported:
 
-- `depends_check()`
-- `histonemod_app()`
-- `runHistoneMod()`
-- `percentage_calculation()`
-- `plot_pca()`
-- `plot_heatmap()`
-- `plot_barplot_single()`
+- `depends_check()`, `histonemod_app()`, `runHistoneMod()`
+- `read_skyline_csv()`, `infer_sample_sheet()`, `map_columns()`, `validate_input_tables()`
+- `percentage_calculation()`, `quantify_peptides()`, `normalize_values()`
+- `transform_composition()`, `composition_matrix()`
+- `differential_analysis()`, `plot_volcano()`
+- `compute_metrics()`, `plot_composition()`
+- `qc_summary()`, `plot_qc_missingness()`, `plot_qc_cv()`
+- `plot_pca()`, `plot_heatmap()`, `plot_barplot_single()`
+- `save_session()`, `load_session()`
 
 ## Dependency management
 
@@ -140,6 +145,6 @@ Please use the issue tracker for bug reports, feature requests, and installation
 
 ## Citation
 
-Jie Hua et al. (2026). jiehua1995/HistoneMod: v0.6.2. Zenodo. https://doi.org/10.5281/zenodo.20831990
+Jie Hua et al. (2026). jiehua1995/HistoneMod: v0.7.0. Zenodo. https://doi.org/10.5281/zenodo.20831990
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjiehua1995%2FHistoneMod?ref=badge_shield&issueType=security)

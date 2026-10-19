@@ -23,10 +23,10 @@ histonemod_ui <- function() {
     ##### Global Head Includes (CSS/JS) #####
     # CUSTOMIZE: If you need offline usage, replace CDN assets with local files.
     tags$head(
-      # Tailwind CSS (CDN)
-      tags$script(src = "https://cdn.tailwindcss.com"),
-      # Confetti effect (CDN)
-      tags$script(src = "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"),
+      # Tailwind CSS (bundled locally so the app also works offline)
+      tags$script(src = "HistoneMod-assets/tailwindcss.js"),
+      # Confetti effect (bundled locally so the app also works offline)
+      tags$script(src = "HistoneMod-assets/confetti.browser.min.js"),
       ##### Custom Styles #####
       # CUSTOMIZE: Update sizes/spacing here (avoid changing IDs/classes used in server.R).
       tags$style(HTML("
@@ -212,6 +212,49 @@ histonemod_ui <- function() {
           ), value = TRUE)
         ),
       
+        ##### Sidebar: Analysis Settings #####
+        div(class = "sidebar-section",
+          h5(style="font-weight: 600; color: #1e293b; margin-bottom: 16px;",
+             icon("sliders-h"), " Analysis Settings"),
+          selectInput("quant_mode", "Quantification mode",
+                      choices = c("Relative percentage" = "percentage",
+                                  "Light/heavy ratio" = "light_heavy_ratio",
+                                  "Spike-in ratio" = "spike_in"),
+                      selected = "percentage"),
+          selectInput("ratio_normalize", "Ratio normalisation",
+                      choices = c("Median" = "median", "Sum" = "sum", "None" = "none"),
+                      selected = "median"),
+          textInput("spike_in_col", "Spike-in column (sample table)",
+                    placeholder = "optional, e.g. SpikeIn"),
+          selectInput("data_transform", "Data transform",
+                      choices = c("None" = "none",
+                                  "CLR (compositional)" = "clr",
+                                  "Logit" = "logit",
+                                  "Log2" = "log2"),
+                      selected = "none"),
+          selectInput("missing_policy", "Missing values",
+                      choices = c("Treat as zero" = "zero",
+                                  "Half minimum" = "min",
+                                  "Drop incomplete" = "drop"),
+                      selected = "zero"),
+          textInput("group_order", "Group order (comma-separated)",
+                    placeholder = "e.g. Control, DrugA, DrugB"),
+          textInput("group_colors", "Group colours (optional)",
+                    placeholder = "Control=#4C72B0, DrugA=#DD8452")
+        ),
+
+        ##### Sidebar: Session #####
+        div(class = "sidebar-section",
+          h5(style="font-weight: 600; color: #1e293b; margin-bottom: 16px;",
+             icon("save"), " Session"),
+          downloadButton("save_session", "Save session (.rds)",
+                         class = "btn btn-outline-primary btn-sm",
+                         style = "width:100%;"),
+          div(style = "margin-top:10px;",
+            fileInput("load_session", "Load session", accept = ".rds")
+          )
+        ),
+
         ##### Sidebar: Validation Status #####
         div(class = "sidebar-section",
           uiOutput("validation_status")
@@ -275,7 +318,9 @@ histonemod_ui <- function() {
                                                  "Mako" = "mako", "Turbo" = "turbo"),
                                      selected = "viridis")
                        )
-                     )
+                     ),
+                     checkboxInput("heatmap_scale_rows", "Row z-score", value = FALSE),
+                     checkboxInput("heatmap_group_annotation", "Show group annotation", value = TRUE)
                    ),
                    div(class = "text-end mb-2",
                      actionButton("export_heatmap", "Download Plot", 
@@ -307,6 +352,18 @@ histonemod_ui <- function() {
                        )
                      ),
                      checkboxInput("add_signif", "Add significance stars", value=TRUE),
+                     div(class = "row",
+                       div(class = "col-md-6",
+                         selectInput("barplot_error_bar", "Error bars",
+                                     choices = c("Standard error" = "se",
+                                                 "Standard deviation" = "sd",
+                                                 "95% confidence interval" = "ci95"),
+                                     selected = "se")
+                       ),
+                       div(class = "col-md-6",
+                         checkboxInput("barplot_show_n", "Show n per group", value = FALSE)
+                       )
+                     ),
                      checkboxInput("barplot_y_auto", "Y-axis: Auto", value = TRUE),
                      conditionalPanel(
                        condition = "input.barplot_y_auto == false",
@@ -334,6 +391,12 @@ histonemod_ui <- function() {
                      withSpinner(plotOutput("barplot_single", height="500px"))
                    )
           ),
+          ##### Tab: Differential #####
+          tabPanel("Differential", differential_ui("differential")),
+          ##### Tab: Composition #####
+          tabPanel("Composition", composition_ui("composition")),
+          ##### Tab: QC #####
+          tabPanel("QC", qc_ui("qc")),
           ##### Tab: Table #####
           tabPanel("Table",
                    div(class = "plot-container", style="max-height: 600px; overflow-y: auto;",

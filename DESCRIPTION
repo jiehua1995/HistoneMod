@@ -1,7 +1,7 @@
 Package: HistoneMod
 Type: Package
 Title: Interactive Analysis of Histone Post-Translational Modifications
-Version: 0.6.2
+Version: 0.7.0
 Authors@R: c(
     person("Jie", "Hua", email = "jie.Hua@bmc.med.lmu.de", role = c("aut", "cre")),
     person("Marco", "Borso", role = "ctb"),
@@ -26,9 +26,6 @@ Imports:
     ggplot2,
     ggrepel,
     ggsignif,
-    httr,
-    jsonlite,
-    pak,
     pheatmap,
     png,
     shiny,
@@ -37,13 +34,20 @@ Imports:
     shinyFiles,
     shinyjs,
     shinyWidgets,
-    svglite,
     tidyr,
     viridis
 Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.0.0
 Suggests: 
+    data.table,
+    httr,
+    jsonlite,
     knitr,
-    rmarkdown
+    pak,
+    rlang,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    zCompositions
 VignetteBuilder: knitr
+Config/testthat/edition: 3
 RoxygenNote: 7.3.3

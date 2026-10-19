@@ -4,11 +4,20 @@
 \alias{plot_pca}
 \title{Plot PCA scores}
 \usage{
-plot_pca(data_merge, show_ellipse = TRUE, color_palette = "viridis")
+plot_pca(
+  data_merge,
+  show_ellipse = TRUE,
+  color_palette = "viridis",
+  value_col = "Percentage",
+  transform = c("none", "clr", "logit", "log2"),
+  missing = c("zero", "drop", "min"),
+  group_order = NULL,
+  group_colors = NULL
+)
 }
 \arguments{
 \item{data_merge}{A processed data frame containing at least
-\code{Replicate.Name}, \code{Peptide.Note}, and \code{Percentage}.}
+\code{Replicate.Name}, \code{Peptide.Note} and the column named by \code{value_col}.}
 
 \item{show_ellipse}{Logical; if \code{TRUE}, draws 95 percent confidence ellipses
 for groups with enough samples.}
@@ -16,10 +25,27 @@ for groups with enough samples.}
 \item{color_palette}{Character palette name. Supported values are
 \code{"viridis"}, \code{"magma"}, \code{"plasma"}, \code{"inferno"}, \code{"cividis"},
 \code{"rocket"}, \code{"mako"}, and \code{"turbo"}.}
+
+\item{value_col}{Character; name of the numeric value column.}
+
+\item{transform}{Character; one of \code{"none"}, \code{"clr"}, \code{"logit"} or \code{"log2"}.
+\code{"clr"} is recommended for compositional percentage data.}
+
+\item{missing}{Character; missing sample-by-peptide values are replaced by
+\code{"zero"} (default), \code{"min"} (half the smallest positive value) or dropped
+with \code{"drop"}.}
+
+\item{group_order}{Optional character vector giving the display order of
+groups.}
+
+\item{group_colors}{Optional named character vector of colours per group.}
 }
 \value{
 A \code{ggplot} object.
 }
 \description{
-Builds a PCA score plot from a processed HistoneMod percentage table.
+Builds a PCA score plot from a processed HistoneMod table. The value column,
+transformation, missing-value policy, group order and group colours are
+configurable so the same function can be used for percentages, ratios and
+transformed (CLR/logit) data.
 }

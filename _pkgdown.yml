@@ -13,22 +13,48 @@ navbar:
       href: https://github.com/jiehua1995/HistoneMod/blob/main/CHANGELOG.md
 
 reference:
+- title: Overview
+  desc: Package-level documentation.
+  contents:
+  - HistoneMod-package
 - title: Run HistoneMod
   desc: Launch the packaged Shiny application.
   contents:
   - runHistoneMod
   - histonemod_app
-- title: Preprocess Skyline exports
-  desc: Validate inputs and compute relative peptide abundances.
+- title: Read and validate data
+  desc: Import Skyline exports, infer sample sheets and remap columns.
+  contents:
+  - read_skyline_csv
+  - infer_sample_sheet
+  - map_columns
+  - validate_input_tables
+- title: Quantify peptide states
+  desc: Compute relative percentages, light/heavy ratios and spike-in normalisation.
   contents:
   - percentage_calculation
-- title: Visualise results
+  - quantify_peptides
+  - normalize_values
+  - transform_composition
+  - composition_matrix
+- title: Analyse
+  desc: Differential testing and quality control.
+  contents:
+  - differential_analysis
+  - compute_metrics
+  - qc_summary
+- title: Visualise
   desc: Build publication-ready plots from processed data.
   contents:
   - plot_pca
   - plot_heatmap
   - plot_barplot_single
-- title: Utilities
-  desc: Check and repair package dependencies.
+  - plot_volcano
+  - plot_composition
+  - plot_qc_missingness
+  - plot_qc_cv
+- title: Session and utilities
   contents:
+  - save_session
+  - load_session
   - depends_check

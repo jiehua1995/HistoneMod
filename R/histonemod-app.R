@@ -2,20 +2,18 @@
 # This file exposes the package-level helpers used to launch the Shiny app.
 
 HISTONEMOD_RESOURCE_PREFIX <- "HistoneMod-assets"
-HISTONEMOD_PACKAGE_FALLBACK_VERSION <- "0.6.2"
-
-# Internal package metadata helper.
-histonemod_package_version <- function() {
-  desc <- tryCatch(utils::packageDescription("HistoneMod"), error = function(e) NULL)
-  if (!is.null(desc) && !is.null(desc$Version) && nzchar(desc$Version)) {
-    return(desc$Version)
-  }
-  HISTONEMOD_PACKAGE_FALLBACK_VERSION
-}
 
 # Internal helper for locating the packaged logo.
 histonemod_logo_path <- function() {
   system.file("app", "www", "logo.png", package = "HistoneMod")
+}
+
+# Internal helper that raises Shiny's upload limit for real Skyline exports.
+.set_histonemod_options <- function() {
+  if (is.null(getOption("shiny.maxRequestSize"))) {
+    options(shiny.maxRequestSize = 500 * 1024^2)
+  }
+  invisible(TRUE)
 }
 
 # Internal helper for registering packaged web assets.
@@ -44,6 +42,7 @@ histonemod_logo_path <- function() {
 #' @return A `shiny.appobj` that can be launched with [shiny::runApp()].
 #' @export
 histonemod_app <- function() {
+  .set_histonemod_options()
   .register_histonemod_resources()
   shiny::shinyApp(ui = histonemod_ui(), server = histonemod_server)
 }

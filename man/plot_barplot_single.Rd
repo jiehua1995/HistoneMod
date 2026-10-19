@@ -12,7 +12,12 @@ plot_barplot_single(
   color_palette = "viridis",
   y_limits = NULL,
   font_scale = 1,
-  title_text = NULL
+  title_text = NULL,
+  value_col = "Percentage",
+  group_order = NULL,
+  group_colors = NULL,
+  error_bar = c("se", "sd", "ci95"),
+  show_n = FALSE
 )
 }
 \arguments{
@@ -34,11 +39,22 @@ plot_barplot_single(
 \item{font_scale}{Numeric multiplier used to scale plot text.}
 
 \item{title_text}{Optional custom plot title.}
+
+\item{value_col}{Character; name of the numeric value column.}
+
+\item{group_order}{Optional character vector giving the display order of
+groups.}
+
+\item{group_colors}{Optional named character vector of colours per group.}
+
+\item{error_bar}{Character; \code{"se"} (default), \code{"sd"} or \code{"ci95"}.}
+
+\item{show_n}{Logical; print the number of replicates above each bar.}
 }
 \value{
 A \code{ggplot} object.
 }
 \description{
-Summarises peptide percentages by group and renders a single barplot with
+Summarises peptide values by group and renders a single barplot with
 optional significance testing.
 }

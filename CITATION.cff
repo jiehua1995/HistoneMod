@@ -11,8 +11,8 @@ authors:
   given-names: "Beyza"
 - family-names: "Imhof"
   given-names: "Axel"
-version: "0.6.2"
-date-released: 2026-06-24
+version: "0.7.0"
+date-released: 2026-10-19
 doi: "10.5281/zenodo.20831990"
 url: "https://github.com/jiehua1995/HistoneMod"
 repository-code: "https://github.com/jiehua1995/HistoneMod"

@@ -21,6 +21,9 @@
 #' @importFrom shiny req resourcePaths runApp selectInput shinyApp showModal
 #' @importFrom shiny sidebarLayout sidebarPanel sliderInput span tabPanel
 #' @importFrom shiny tabsetPanel tagList tags uiOutput validate withProgress
+#' @importFrom shiny hr p textAreaInput textInput updateCheckboxInput
+#' @importFrom shiny updateSelectInput updateTextInput imageOutput
+#' @importFrom utils head install.packages read.csv write.csv
 #' @importFrom shinyalert shinyalert useShinyalert
 #' @importFrom shinycssloaders withSpinner
 #' @importFrom shinyFiles getVolumes parseDirPath shinyDirChoose shinyDirButton

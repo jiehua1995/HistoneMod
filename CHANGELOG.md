@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.0] - 2026-10-19
+
+### ✨ Added
+- **Differential analysis**: `differential_analysis()` runs per-peptide Welch t-tests across groups (or all pairwise comparisons), applies BH correction globally or within protein, and returns effect sizes, group means and direction. `plot_volcano()` visualises the results.
+- **Compositional transforms**: `transform_composition()` and `composition_matrix()` provide CLR, ALR, logit and log2 transforms with explicit zero handling for percentage data.
+- **Composition and derived metrics**: `plot_composition()` draws stacked modification-state bars per protein and group; `compute_metrics()` calculates user-defined ratio/sum metrics from regular expressions.
+- **Quality control**: `qc_summary()`, `plot_qc_missingness()` and `plot_qc_cv()` report detection rates, missingness, within-group CV and retention-time outliers.
+- **Quantification modes**: `quantify_peptides()` and `normalize_values()` add light/heavy ratio and spike-in normalisation on top of relative percentage quantification.
+- **Robust input handling**: `read_skyline_csv()` detects the delimiter and UTF-8 BOM, `infer_sample_sheet()` builds a sample table from replicate names, `map_columns()` remaps non-standard headers, and `validate_input_tables()` returns structured validation errors and warnings.
+- **Session persistence**: `save_session()` and `load_session()` store inputs and analysis settings in a portable `.rds` file.
+- **New Shiny tabs**: Differential, Composition and QC; configurable data transform, missing-value policy, group order, group colours, ratio normalisation and error-bar type; session save/load controls.
+- **Packaging and quality**: testthat suite, GitHub Actions R-CMD-check and pkgdown workflows, local offline copies of the Tailwind and confetti assets, and a raised `shiny.maxRequestSize` for large Skyline exports.
+
+### 🔧 Changed
+- Plot functions (`plot_pca()`, `plot_heatmap()`, `plot_barplot_single()`) gained `value_col`, `missing`, `group_order`, `group_colors`, transform, row-scaling and error-bar options while keeping their previous defaults.
+- The app version is now read from `DESCRIPTION`; unused `svglite` was removed and optional packages moved to `Suggests`.
+- Application error panels now show a short message unless debugging is enabled.
+
+### 🐛 Fixed
+- Duplicate replicate-by-peptide rows now produce a clear error instead of corrupting PCA/heatmap input.
+- Heatmap group annotation uses a base data frame, avoiding tibble row-name warnings.
+- Large uploads are no longer rejected by Shiny's default request-size limit.
+
+---
+
 ## [0.6.2] - 2026-06-24
 
 > This release entry was automatically added and summarized by an AI agent based on the repository changes in this upgrade round.

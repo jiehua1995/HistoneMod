@@ -266,27 +266,40 @@ histonemod_server <- function(input, output, session) {
   # CUSTOMIZE: Reduce detail if you prefer shorter error outputs.
   plot_error_panel <- function(e) {
     msg <- conditionMessage(e)
-    cls <- paste(class(e), collapse = ", ")
-    call_txt <- tryCatch(deparse(conditionCall(e)), error = function(err) NA_character_)
+    debug <- isTRUE(getOption("histonemod.debug", FALSE))
 
-    trace_txt <- tryCatch({
-      if (requireNamespace("rlang", quietly = TRUE)) {
-        utils::capture.output(print(rlang::trace_back()))
-      } else {
+    if (!debug) {
+      details <- paste0(
+        "This view could not be rendered.\n\n",
+        msg,
+        "\n\nSet options(histonemod.debug = TRUE) before launching HistoneMod ",
+        "to display technical details."
+      )
+    } else {
+      cls <- paste(class(e), collapse = ", ")
+      call_txt <- tryCatch(deparse(conditionCall(e)), error = function(err) NA_character_)
+
+      trace_txt <- tryCatch({
+        if (requireNamespace("rlang", quietly = TRUE)) {
+          utils::capture.output(print(rlang::trace_back()))
+        } else {
+          utils::capture.output(print(utils::tail(sys.calls(), 50)))
+        }
+      }, error = function(err) {
         utils::capture.output(print(utils::tail(sys.calls(), 50)))
-      }
-    }, error = function(err) {
-      utils::capture.output(print(utils::tail(sys.calls(), 50)))
-    })
+      })
 
-    details <- paste(c(
-      paste0("Error: ", msg),
-      paste0("Class: ", cls),
-      paste0("Call: ", call_txt),
-      "",
-      "Trace:",
-      trace_txt
-    ), collapse = "\n")
+      details <- paste(c(
+        paste0("Error: ", msg),
+        paste0("Class: ", cls),
+        paste0("Call: ", call_txt),
+        "",
+        "Trace:",
+        trace_txt
+      ), collapse = "\n")
+    }
+
+    message("HistoneMod plot error: ", msg)
 
     graphics::plot.new()
     graphics::par(mar = c(1, 1, 1, 1))
@@ -301,6 +314,7 @@ histonemod_server <- function(input, output, session) {
   current_plot <- reactiveVal(NULL)
   current_plot_type <- reactiveVal(NULL)
   data_source_mode <- reactiveVal("none")
+  pending_upload <- reactiveVal(NULL)
   ms1_source_name <- reactiveVal(NA_character_)
   sample_source_name <- reactiveVal(NA_character_)
   demo_ms1_path <- system.file("extdata", "MS1_demo.csv", package = "HistoneMod")
@@ -348,23 +362,37 @@ histonemod_server <- function(input, output, session) {
     trigger_success_effect()
   }
 
-  load_data_sources <- function(ms1_path, sample_path, ms1_name, sample_name, source_mode = "upload") {
-    ms1_validation <- validate_ms1_file(ms1_path)
-    sample_validation <- validate_sample_file(sample_path)
+  required_ms1_columns <- c(
+    "Protein.Name", "Peptide.Note", "Replicate.Name",
+    "Total.Area.MS1", "Isotope.Label.Type"
+  )
+  required_sample_columns <- c("Replicate.Name", "Group", "Replicate.No")
 
-    if(!ms1_validation$valid) {
-      shinyalert("Invalid MS1 File", ms1_validation$message, type = "error")
+  validate_and_apply <- function(ms1, sample, ms1_name, sample_name, source_mode = "upload") {
+    check <- validate_input_tables(ms1, sample)
+
+    if (!isTRUE(check$valid)) {
+      shinyalert(
+        "Invalid input tables",
+        HTML(paste(check$errors, collapse = "<br>")),
+        type = "error",
+        html = TRUE
+      )
       return(FALSE)
     }
 
-    if(!sample_validation$valid) {
-      shinyalert("Invalid Sample File", sample_validation$message, type = "error")
-      return(FALSE)
+    if (length(check$warnings) > 0) {
+      shinyalert(
+        "Input warnings",
+        HTML(paste(check$warnings, collapse = "<br>")),
+        type = "warning",
+        html = TRUE
+      )
     }
 
     apply_loaded_data(
-      ms1 = ms1_validation$data,
-      sample = sample_validation$data,
+      ms1 = check$ms1,
+      sample = check$sample,
       ms1_name = ms1_name,
       sample_name = sample_name,
       source_mode = source_mode
@@ -372,6 +400,147 @@ histonemod_server <- function(input, output, session) {
 
     TRUE
   }
+
+  load_data_sources <- function(ms1_path, sample_path, ms1_name, sample_name, source_mode = "upload") {
+    ms1 <- tryCatch(
+      read_skyline_csv(ms1_path),
+      error = function(e) {
+        shinyalert("Could not read MS1 file", conditionMessage(e), type = "error")
+        NULL
+      }
+    )
+    sample <- tryCatch(
+      read_skyline_csv(sample_path),
+      error = function(e) {
+        shinyalert("Could not read sample file", conditionMessage(e), type = "error")
+        NULL
+      }
+    )
+
+    if (is.null(ms1) || is.null(sample)) return(FALSE)
+
+    validate_and_apply(ms1, sample, ms1_name, sample_name, source_mode)
+  }
+
+  mapping_input_id <- function(side, column) {
+    paste0("map_", side, "_", gsub("[^A-Za-z0-9]+", "_", column))
+  }
+
+  guess_mapping <- function(column, candidates) {
+    normalise <- function(x) tolower(gsub("[^a-z0-9]", "", x))
+    hit <- candidates[normalise(candidates) == normalise(column)]
+    if (length(hit) > 0) hit[1] else ""
+  }
+
+  show_column_mapping <- function(ms1, sample, ms1_name, sample_name, source_mode) {
+    missing_ms1 <- setdiff(required_ms1_columns, names(ms1))
+    missing_sample <- setdiff(required_sample_columns, names(sample))
+
+    pending_upload(list(
+      ms1 = ms1,
+      sample = sample,
+      ms1_name = ms1_name,
+      sample_name = sample_name,
+      source_mode = source_mode,
+      missing_ms1 = missing_ms1,
+      missing_sample = missing_sample
+    ))
+
+    mapper <- function(side, column, candidates) {
+      selectInput(
+        mapping_input_id(side, column),
+        column,
+        choices = c("(not found)" = "", candidates),
+        selected = guess_mapping(column, candidates)
+      )
+    }
+
+    showModal(modalDialog(
+      title = "Map required columns",
+      p("Some required columns were not found. Select the matching column from each file, or cancel and check the export."),
+      if (length(missing_ms1) > 0) {
+        tagList(h5("MS1 file"), lapply(missing_ms1, function(col) {
+          mapper("ms1", col, names(ms1))
+        }))
+      },
+      if (length(missing_sample) > 0) {
+        tagList(h5("Sample file"), lapply(missing_sample, function(col) {
+          mapper("sample", col, names(sample))
+        }))
+      },
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("apply_column_mapping", "Apply mapping", class = "btn btn-primary")
+      ),
+      easyClose = FALSE
+    ))
+  }
+
+  handle_uploaded_files <- function() {
+    req(input$ms1_file, input$sample_file)
+
+    ms1 <- tryCatch(
+      read_skyline_csv(input$ms1_file$datapath),
+      error = function(e) {
+        shinyalert("Could not read MS1 file", conditionMessage(e), type = "error")
+        NULL
+      }
+    )
+    sample <- tryCatch(
+      read_skyline_csv(input$sample_file$datapath),
+      error = function(e) {
+        shinyalert("Could not read sample file", conditionMessage(e), type = "error")
+        NULL
+      }
+    )
+    if (is.null(ms1) || is.null(sample)) return(FALSE)
+
+    missing_ms1 <- setdiff(required_ms1_columns, names(ms1))
+    missing_sample <- setdiff(required_sample_columns, names(sample))
+
+    if (length(missing_ms1) == 0 && length(missing_sample) == 0) {
+      return(validate_and_apply(ms1, sample, input$ms1_file$name, input$sample_file$name, "upload"))
+    }
+
+    show_column_mapping(ms1, sample, input$ms1_file$name, input$sample_file$name, "upload")
+    FALSE
+  }
+
+  observeEvent(input$apply_column_mapping, {
+    pending <- pending_upload()
+    req(pending)
+
+    mapping_ms1 <- character(0)
+    for (column in pending$missing_ms1) {
+      value <- input[[mapping_input_id("ms1", column)]]
+      if (is.null(value) || !nzchar(value)) {
+        shinyalert("Mapping incomplete", paste0("Please map the MS1 column '", column, "'."), type = "warning")
+        return()
+      }
+      mapping_ms1[column] <- value
+    }
+
+    mapping_sample <- character(0)
+    for (column in pending$missing_sample) {
+      value <- input[[mapping_input_id("sample", column)]]
+      if (is.null(value) || !nzchar(value)) {
+        shinyalert("Mapping incomplete", paste0("Please map the sample column '", column, "'."), type = "warning")
+        return()
+      }
+      mapping_sample[column] <- value
+    }
+
+    ms1 <- if (length(mapping_ms1) > 0) map_columns(pending$ms1, mapping_ms1) else pending$ms1
+    sample <- if (length(mapping_sample) > 0) map_columns(pending$sample, mapping_sample) else pending$sample
+
+    removeModal()
+    pending_upload(NULL)
+
+    validate_and_apply(
+      ms1, sample,
+      pending$ms1_name, pending$sample_name, pending$source_mode
+    )
+  })
 
   selected_demo_copy_dir <- reactive({
     req(input$copy_demo_dir)
@@ -383,6 +552,78 @@ histonemod_server <- function(input, output, session) {
   })
 
   shinyFiles::shinyDirChoose(input, "copy_demo_dir", roots = demo_copy_roots, session = session)
+
+  ##### Session Save / Load #####
+  output$save_session <- downloadHandler(
+    filename = function() paste0("HistoneMod_session_", Sys.Date(), ".rds"),
+    content = function(file) {
+      req(ms1_data(), sample_data())
+      save_session(
+        file,
+        ms1_data(),
+        sample_data(),
+        settings = list(
+          quant_mode = input$quant_mode,
+          ratio_normalize = input$ratio_normalize,
+          transform = input$data_transform,
+          missing = input$missing_policy,
+          exclude_un = input$exclude_un,
+          group_order = input$group_order,
+          group_colors = input$group_colors,
+          pca_palette = input$pca_palette,
+          heatmap_palette = input$heatmap_palette,
+          barplot_palette = input$barplot_palette
+        )
+      )
+    }
+  )
+
+  observeEvent(input$load_session, {
+    req(input$load_session)
+    session_data <- tryCatch(
+      load_session(input$load_session$datapath),
+      error = function(e) {
+        shinyalert("Could not load session", conditionMessage(e), type = "error")
+        NULL
+      }
+    )
+    req(session_data)
+
+    apply_loaded_data(
+      session_data$ms1,
+      session_data$sample,
+      "session file",
+      "session file",
+      source_mode = "session"
+    )
+
+    settings <- session_data$settings
+    if (is.list(settings)) {
+      if (!is.null(settings$quant_mode)) {
+        shiny::updateSelectInput(session, "quant_mode", selected = settings$quant_mode)
+      }
+      if (!is.null(settings$ratio_normalize)) {
+        shiny::updateSelectInput(session, "ratio_normalize", selected = settings$ratio_normalize)
+      }
+      if (!is.null(settings$transform)) {
+        shiny::updateSelectInput(session, "data_transform", selected = settings$transform)
+      }
+      if (!is.null(settings$missing)) {
+        shiny::updateSelectInput(session, "missing_policy", selected = settings$missing)
+      }
+      if (!is.null(settings$exclude_un)) {
+        shiny::updateCheckboxInput(session, "exclude_un", value = isTRUE(settings$exclude_un))
+      }
+      if (!is.null(settings$group_order)) {
+        shiny::updateTextInput(session, "group_order", value = settings$group_order)
+      }
+      if (!is.null(settings$group_colors)) {
+        shiny::updateTextInput(session, "group_colors", value = settings$group_colors)
+      }
+    }
+
+    shinyalert("Session loaded", "The saved session was restored.", type = "success")
+  })
 
   ##### Version Footer (GitHub Release Check) #####
   latest_version_val <- reactiveVal(NA_character_)
@@ -398,7 +639,7 @@ histonemod_server <- function(input, output, session) {
 
     version_html <- if(is.na(current_version)) {
       "Version: unknown"
-    } else if(!is.na(latest_version) && !identical(latest_version, current_version)) {
+    } else if(version_is_newer(latest_version, current_version)) {
       paste0(
         'Version: <a href="', repo_url, '" target="_blank" style="color:#3b82f6;">', current_version, '</a>',
         ' | New version available: <a href="', repo_url, '" target="_blank" style="color:#3b82f6;">', latest_version, '</a>'
@@ -407,7 +648,7 @@ histonemod_server <- function(input, output, session) {
       paste0('Version: <a href="', repo_url, '" target="_blank" style="color:#3b82f6;">', current_version, '</a>')
     }
 
-    copyright_part <- 'Powered by <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/hua/index.html" target="_blank" style="color:#3b82f6;">Jie Hua</a>, <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/borso/index.html" target="_blank" style="color:#3b82f6;">Dr. Marco Borso</a> and <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/bozdag/index.html" target="_blank" style="color:#3b82f6;">Beyza Bozdağ</a>. Copyright © <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html" target="_blank" style="color:#3b82f6;">Imhof Group</a>'
+    copyright_part <- 'Powered by <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/hua/index.html" target="_blank" style="color:#3b82f6;">Jie Hua</a>, <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/borso/index.html" target="_blank" style="color:#3b82f6;">Dr. Marco Borso</a> and <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/bozdag/index.html" target="_blank" style="color:#3b82f6;">Beyza Bozdag</a>. Copyright &copy; <a href="https://www.molekularbiologie.abi.med.uni-muenchen.de/personen/imhof_group/index.html" target="_blank" style="color:#3b82f6;">Imhof Group</a>'
 
     tags$p(
       class = "text-center mb-0",
@@ -515,14 +756,7 @@ histonemod_server <- function(input, output, session) {
   # Init the select sections after uploading
   observeEvent(list(input$ms1_file, input$sample_file), {
     req(input$ms1_file, input$sample_file)
-
-    load_data_sources(
-      ms1_path = input$ms1_file$datapath,
-      sample_path = input$sample_file$datapath,
-      ms1_name = input$ms1_file$name,
-      sample_name = input$sample_file$name,
-      source_mode = "upload"
-    )
+    handle_uploaded_files()
   })
 
   observeEvent(input$load_demo_data, {
@@ -709,17 +943,69 @@ histonemod_server <- function(input, output, session) {
   })
   
   
+  ##### Analysis Settings (Reactive) #####
+  quant_mode <- reactive({
+    mode <- input$quant_mode
+    if (is.null(mode) || !nzchar(mode)) "percentage" else mode
+  })
+
+  value_col_reactive <- reactive({
+    if (identical(quant_mode(), "percentage")) "Percentage" else "Value"
+  })
+
+  transform_mode <- reactive({
+    value <- input$data_transform
+    if (is.null(value) || !nzchar(value)) "none" else value
+  })
+
+  missing_mode <- reactive({
+    value <- input$missing_policy
+    if (is.null(value) || !nzchar(value)) "zero" else value
+  })
+
+  group_order_reactive <- reactive(parse_group_order(input$group_order))
+  group_colors_reactive <- reactive(parse_group_colors(input$group_colors))
+
   # Filter the data
   filtered_data_reactive <- reactive({
     req(ms1_data(), sample_data())
-    df <- percentage_calculation(
-      ms1_data(), sample_data(),
-      exclude_un = input$exclude_un,
-      selected_peptides = input$select_peptides,
-      selected_samples = input$select_samples
-    )
+
+    if (identical(quant_mode(), "percentage")) {
+      df <- percentage_calculation(
+        ms1_data(), sample_data(),
+        exclude_un = input$exclude_un,
+        selected_peptides = input$select_peptides,
+        selected_samples = input$select_samples
+      )
+    } else {
+      normalize <- input$ratio_normalize
+      if (is.null(normalize) || !nzchar(normalize)) normalize <- "median"
+      spike_col <- input$spike_in_col
+      if (!is.null(spike_col) && !nzchar(trimws(spike_col))) spike_col <- NULL
+
+      df <- tryCatch(
+        quantify_peptides(
+          ms1_data(), sample_data(),
+          mode = quant_mode(),
+          normalize = normalize,
+          spike_in_col = if (identical(quant_mode(), "spike_in")) spike_col else NULL
+        ),
+        error = function(e) {
+          shinyalert("Quantification failed", conditionMessage(e), type = "error")
+          NULL
+        }
+      )
+      req(df)
+
+      df <- filter_processed_data(
+        df,
+        exclude_un = input$exclude_un,
+        selected_peptides = input$select_peptides,
+        selected_samples = input$select_samples
+      )
+    }
+
     filtered_data(df)
-    ##### Data Pipeline (Reactive Filtered Data) #####
     df
   })
   
@@ -735,7 +1021,16 @@ histonemod_server <- function(input, output, session) {
     )
     
     ##### PCA Tab Logic #####
-    plot_pca(data, show_ellipse = input$show_ellipse, color_palette = input$pca_palette)
+    plot_pca(
+      data,
+      show_ellipse = input$show_ellipse,
+      color_palette = input$pca_palette,
+      value_col = value_col_reactive(),
+      transform = transform_mode(),
+      missing = missing_mode(),
+      group_order = group_order_reactive(),
+      group_colors = group_colors_reactive()
+    )
   })
   
   output$pca_plot <- renderPlot({ 
@@ -932,7 +1227,16 @@ histonemod_server <- function(input, output, session) {
     dup_check <- data %>% count(Replicate.Name, Peptide.Note) %>% filter(n > 1)
     shiny::validate(shiny::need(nrow(dup_check) == 0, "Check your data, it is wrong or it has duplicated ids. No Heatmap available now"))
     
-    plot_heatmap(data, cluster_rows = input$cluster_rows, cluster_cols = input$cluster_cols, color_palette = input$heatmap_palette)
+    plot_heatmap(
+      data,
+      cluster_rows = input$cluster_rows,
+      cluster_cols = input$cluster_cols,
+      color_palette = input$heatmap_palette,
+      value_col = value_col_reactive(),
+      missing = missing_mode(),
+      scale = if (isTRUE(input$heatmap_scale_rows)) "row" else "none",
+      show_group_annotation = isTRUE(input$heatmap_group_annotation)
+    )
   })
   
   output$heatmap_plot <- renderPlot({ 
@@ -1157,7 +1461,12 @@ histonemod_server <- function(input, output, session) {
       input$select_peptide_barplot,
       add_signif = input$add_signif,
       color_palette = input$barplot_palette,
-      y_limits = y_limits
+      y_limits = y_limits,
+      value_col = value_col_reactive(),
+      group_order = group_order_reactive(),
+      group_colors = group_colors_reactive(),
+      error_bar = if (is.null(input$barplot_error_bar)) "se" else input$barplot_error_bar,
+      show_n = isTRUE(input$barplot_show_n)
     )
   })
   
@@ -1344,10 +1653,14 @@ histonemod_server <- function(input, output, session) {
     filename = function() { paste0("Wide_Format_Table_", Sys.Date(), ".csv") },
     content = function(file) {
       df <- filtered_data_reactive()
-      wide <- df %>%
-        select(Replicate.Name, Peptide.Note, Percentage) %>%
-        pivot_wider(names_from = Peptide.Note, values_from = Percentage, values_fill=0)
-      write.csv(wide, file, row.names=FALSE)
+      value_col <- value_col_reactive()
+      wide <- tidyr::pivot_wider(
+        df[, c("Replicate.Name", "Peptide.Note", value_col), drop = FALSE],
+        names_from = "Peptide.Note",
+        values_from = value_col,
+        values_fill = 0
+      )
+      write.csv(wide, file, row.names = FALSE)
     }
   )
 
@@ -1672,40 +1985,40 @@ histonemod_server <- function(input, output, session) {
 
         grid::grid.text("Input files", x = x0, y = y, just = c("left", "top"), gp = heading_gp)
         y <- y - 0.045
-        grid::grid.text(paste0("• MS1: ", ms1_name), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 MS1: ", ms1_name), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         y <- y - 0.032
-        grid::grid.text(paste0("• Sample: ", sample_name), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 Sample: ", sample_name), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
 
         y <- y - 0.055
         grid::grid.text("Dataset overview", x = x0, y = y, just = c("left", "top"), gp = heading_gp)
         y <- y - 0.045
-        grid::grid.text(paste0("• Proteins: ", length(unique(df$Protein.Name))), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 Proteins: ", length(unique(df$Protein.Name))), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         y <- y - 0.032
-        grid::grid.text(paste0("• Peptides: ", length(unique(df$Peptide.Note))), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 Peptides: ", length(unique(df$Peptide.Note))), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         y <- y - 0.032
-        grid::grid.text(paste0("• Samples: ", length(unique(df$Replicate.Name))), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 Samples: ", length(unique(df$Replicate.Name))), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         y <- y - 0.032
-        grid::grid.text(paste0("• Groups: ", if(!is.na(group_n)) group_n else "(not available)"), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 Groups: ", if(!is.na(group_n)) group_n else "(not available)"), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
 
         y <- y - 0.055
         grid::grid.text("Key settings", x = x0, y = y, just = c("left", "top"), gp = heading_gp)
         y <- y - 0.045
-        grid::grid.text(paste0("• Exclude unmodified peptides: ", if(isTRUE(input$exclude_un)) "Yes" else "No"), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 Exclude unmodified peptides: ", if(isTRUE(input$exclude_un)) "Yes" else "No"), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         y <- y - 0.032
-        grid::grid.text(paste0("• PCA palette: ", input$pca_palette), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 PCA palette: ", input$pca_palette), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         y <- y - 0.032
-        grid::grid.text(paste0("• Heatmap palette: ", input$heatmap_palette), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 Heatmap palette: ", input$heatmap_palette), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         y <- y - 0.032
-        grid::grid.text(paste0("• Heatmap clustering (rows/cols): ", if(isTRUE(input$cluster_rows)) "On" else "Off", " / ", if(isTRUE(input$cluster_cols)) "On" else "Off"), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 Heatmap clustering (rows/cols): ", if(isTRUE(input$cluster_rows)) "On" else "Off", " / ", if(isTRUE(input$cluster_cols)) "On" else "Off"), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         y <- y - 0.032
-        grid::grid.text(paste0("• Barplot palette: ", input$barplot_palette), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 Barplot palette: ", input$barplot_palette), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         y <- y - 0.032
-        grid::grid.text(paste0("• Barplot significance stars: ", if(isTRUE(input$add_signif)) "On" else "Off"), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 Barplot significance stars: ", if(isTRUE(input$add_signif)) "On" else "Off"), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         y <- y - 0.032
-        grid::grid.text(paste0("• Barplot Y-axis mode: ", y_axis_mode), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+        grid::grid.text(paste0("\u2022 Barplot Y-axis mode: ", y_axis_mode), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         if(!is.na(y_axis_range)) {
           y <- y - 0.032
-          grid::grid.text(paste0("• Barplot Y-axis range: ", y_axis_range), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
+          grid::grid.text(paste0("\u2022 Barplot Y-axis range: ", y_axis_range), x = x0 + 0.02, y = y, just = c("left", "top"), gp = item_gp)
         }
       }
 
@@ -1724,7 +2037,11 @@ histonemod_server <- function(input, output, session) {
             cluster_rows = input$cluster_rows,
             cluster_cols = input$cluster_cols,
             color_palette = input$heatmap_palette,
-            fontsize = fontsize
+            fontsize = fontsize,
+            value_col = value_col_reactive(),
+            missing = missing_mode(),
+            scale = if (isTRUE(input$heatmap_scale_rows)) "row" else "none",
+            show_group_annotation = isTRUE(input$heatmap_group_annotation)
           )
           grid::grid.draw(p$gtable)
         })
@@ -1794,7 +2111,10 @@ histonemod_server <- function(input, output, session) {
                       color_palette = input$barplot_palette,
                       y_limits = y_limits,
                       font_scale = font_scale,
-                      title_text = peptide
+                      title_text = peptide,
+                      value_col = value_col_reactive(),
+                      group_order = group_order_reactive(),
+                      group_colors = group_colors_reactive()
                     )
                     print(p, newpage = FALSE)
                   }, error = function(e) {
@@ -1865,4 +2185,9 @@ histonemod_server <- function(input, output, session) {
       })
     }
   )
+
+  ##### New analysis tabs (Shiny modules) #####
+  differential_server("differential", filtered_data_reactive, value_col_reactive, group_order_reactive)
+  composition_server("composition", filtered_data_reactive, value_col_reactive, group_order_reactive)
+  qc_server("qc", filtered_data_reactive, value_col_reactive)
 }

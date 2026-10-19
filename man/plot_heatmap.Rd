@@ -11,12 +11,16 @@ plot_heatmap(
   color_palette = "viridis",
   fontsize = 12,
   fontsize_row = NULL,
-  fontsize_col = NULL
+  fontsize_col = NULL,
+  value_col = "Percentage",
+  missing = c("zero", "drop", "min"),
+  scale = c("none", "row"),
+  show_group_annotation = TRUE
 )
 }
 \arguments{
 \item{data_merge}{A processed data frame containing at least
-\code{Replicate.Name}, \code{Peptide.Note}, and \code{Percentage}.}
+\code{Replicate.Name}, \code{Peptide.Note} and the column named by \code{value_col}.}
 
 \item{cluster_rows}{Logical; whether peptides should be clustered.}
 
@@ -31,11 +35,21 @@ plot_heatmap(
 \item{fontsize_row}{Optional row label font size.}
 
 \item{fontsize_col}{Optional column label font size.}
+
+\item{value_col}{Character; name of the numeric value column.}
+
+\item{missing}{Character; how to handle missing values (\code{"zero"}, \code{"min"}
+or \code{"drop"}).}
+
+\item{scale}{Character; \code{"none"} (default) or \code{"row"} for row z-scores.}
+
+\item{show_group_annotation}{Logical; add sample group annotation when a
+\code{Group} column is present.}
 }
 \value{
 A \code{pheatmap} result object.
 }
 \description{
-Converts a processed HistoneMod percentage table into a peptide-by-sample
-matrix and renders a heatmap with \code{pheatmap}.
+Converts a processed HistoneMod table into a peptide-by-sample matrix and
+renders a heatmap with \code{pheatmap}.
 }

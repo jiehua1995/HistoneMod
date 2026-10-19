@@ -2,7 +2,7 @@
 title: "Using HistoneMod"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Getting Started with HistoneMod}
+  %\VignetteIndexEntry{Using HistoneMod}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -90,20 +90,86 @@ system.file("extdata", "samples_demo.csv", package = "HistoneMod")
 After launching the application:
 
 1. upload the `MS1` and `Sample` CSV files in the sidebar, or click `Load Demo Data`;
-2. select peptides and samples of interest;
-3. choose whether unmodified peptides should be excluded;
-4. inspect the PCA, heatmap, and barplot tabs;
-5. export plots, the wide-format table, or the quick PDF report.
+2. if a required column is missing, map it in the dialog that appears;
+3. select peptides and samples of interest;
+4. choose whether unmodified peptides should be excluded;
+5. set the quantification mode, data transform, missing-value policy, group order and group colours in `Analysis Settings`;
+6. inspect the PCA, heatmap, barplot, composition, differential and QC tabs;
+7. export plots, the wide-format table, the differential results, or the quick PDF report;
+8. optionally save the session as an `.rds` file and reload it later.
+
+## Compositional data and differential testing
+
+Histone modification percentages are compositional: within one protein the
+states add up to 100%. `HistoneMod` therefore offers explicit transforms
+(`CLR`, `logit`, `log2`) and a global differential analysis:
+
+```r
+data <- HistoneMod::percentage_calculation(ms1, sample)
+
+# CLR-transformed PCA
+HistoneMod::plot_pca(data, transform = "clr")
+
+# Welch t-tests with BH correction, then a volcano plot
+res <- HistoneMod::differential_analysis(data, transform = "clr")
+HistoneMod::plot_volcano(res)
+
+# Stacked modification-state composition and derived metrics
+HistoneMod::plot_composition(data, protein = "H3_3-8", summarise = TRUE)
+specs <- data.frame(
+  metric = "K4me3_share",
+  numerator = "K4_me3",
+  denominator = "K4_"
+)
+HistoneMod::compute_metrics(data, specs)
+
+# Quality control
+qc <- HistoneMod::qc_summary(data)
+HistoneMod::plot_qc_missingness(qc)
+HistoneMod::plot_qc_cv(qc)
+```
+
+## Quantification modes
+
+By default, peptide abundances are expressed as relative percentages within
+each protein and replicate. Two further modes are available for labelled
+experiments:
+
+- `light_heavy_ratio`: uses the light/heavy area ratio per peptide;
+- `spike_in`: additionally normalises by a spike-in factor stored in the
+  sample table.
+
+The same modes are available through `quantify_peptides()`:
+
+```r
+HistoneMod::quantify_peptides(ms1, sample, mode = "light_heavy_ratio",
+                              normalize = "median")
+```
+
+## Saving and restoring a session
+
+The sidebar can write the current inputs and analysis settings to a single
+file and restore them later:
+
+```r
+HistoneMod::save_session("analysis.rds", ms1, sample, settings = list())
+session <- HistoneMod::load_session("analysis.rds")
+```
 
 ## Exported analysis helpers
 
 Most users only need the Shiny interface. For scripted workflows, `HistoneMod`
 also exports a small set of analysis helpers:
 
-- `percentage_calculation()`
-- `plot_pca()`
-- `plot_heatmap()`
-- `plot_barplot_single()`
+- data import: `read_skyline_csv()`, `infer_sample_sheet()`,
+  `map_columns()`, `validate_input_tables()`
+- quantification: `percentage_calculation()`, `quantify_peptides()`,
+  `normalize_values()`, `transform_composition()`, `composition_matrix()`
+- analysis: `differential_analysis()`, `compute_metrics()`, `qc_summary()`
+- plotting: `plot_pca()`, `plot_heatmap()`, `plot_barplot_single()`,
+  `plot_volcano()`, `plot_composition()`, `plot_qc_missingness()`,
+  `plot_qc_cv()`
+- session: `save_session()`, `load_session()`
 
 ## Next steps
 

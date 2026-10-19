@@ -45,11 +45,9 @@ depends_check <- function(install_missing = FALSE, attach = FALSE) {
 
   if (length(required_packages) == 0) {
     required_packages <- c(
-      "DT", "dplyr", "ggplot2", "ggrepel", "ggsignif", "httr",
-      "jsonlite", "pak", "pheatmap", "png", "shiny", "shinyalert",
-      "shinyFiles",
-      "shinycssloaders", "shinyjs", "shinyWidgets", "svglite",
-      "tidyr", "viridis"
+      "DT", "dplyr", "ggplot2", "ggrepel", "ggsignif", "pheatmap", "png",
+      "shiny", "shinyalert", "shinycssloaders", "shinyFiles", "shinyjs",
+      "shinyWidgets", "tidyr", "viridis"
     )
   }
 
@@ -204,28 +202,14 @@ percentage_calculation <- function(ms1, sample,
   
   
   
-  # Exclude unmodified
-  if(exclude_un) {
-    # CUSTOMIZE: This rule treats trailing "_un" or "_unun" (case-insensitive)
-    # as unmodified peptides.
-    df <- df %>% filter({
-      last_mod <- sub("^.*_", "", Peptide.Note)
-      !grepl("^un(un)*$", last_mod, ignore.case = TRUE)
-    })
-  }
-  
-  
-  # Filte peptide modifications
-  if(!is.null(selected_peptides)) {
-    df <- df %>% filter(Peptide.Note %in% selected_peptides)
-  }
-  
-  # Filter samples
-  if(!is.null(selected_samples)) {
-    df <- df %>% filter(Replicate.Name %in% selected_samples)
-  }
-  
-  
+  # Exclude unmodified peptides and apply peptide/sample selections
+  df <- filter_processed_data(
+    df,
+    exclude_un = exclude_un,
+    selected_peptides = selected_peptides,
+    selected_samples = selected_samples
+  )
+
   return(df)
 }
 
@@ -234,63 +218,166 @@ percentage_calculation <- function(ms1, sample,
 # ------------------------
 # 2. PCA plot
 # ------------------------
+# Internal helper: order group values according to a user-supplied vector.
+group_levels <- function(x, order = NULL) {
+  x <- as.character(x)
+  if (is.null(order) || length(order) == 0) return(unique(x))
+  c(intersect(order, x), setdiff(unique(x), order))
+}
+
+# Internal helper: parse a comma-separated group order string.
+parse_group_order <- function(x) {
+  if (is.null(x) || length(x) == 0) return(NULL)
+  x <- trimws(unlist(strsplit(paste(x, collapse = ","), ",", fixed = TRUE)))
+  x <- x[nzchar(x)]
+  if (length(x) == 0) NULL else unique(x)
+}
+
+# Internal helper: parse "Group=#RRGGBB,Group2=#RRGGBB" colour settings.
+parse_group_colors <- function(x) {
+  entries <- parse_group_order(x)
+  if (is.null(entries)) return(NULL)
+  pairs <- strsplit(entries, "=", fixed = TRUE)
+  ok <- vapply(pairs, length, integer(1)) == 2
+  if (!all(ok)) return(NULL)
+  values <- trimws(vapply(pairs, `[`, character(1), 2))
+  names(values) <- trimws(vapply(pairs, `[`, character(1), 1))
+  values[nzchar(values)]
+}
+
+# Internal helper: detect unmodified peptides using the "_un" naming rule.
+is_unmodified_peptide <- function(x) {
+  last_mod <- sub("^.*_", "", as.character(x))
+  grepl("^un(un)*$", last_mod, ignore.case = TRUE)
+}
+
+# Internal helper: apply the shared peptide/sample/unmodified filters.
+filter_processed_data <- function(df, exclude_un = TRUE,
+                                  selected_peptides = NULL,
+                                  selected_samples = NULL) {
+  if (isTRUE(exclude_un) && "Peptide.Note" %in% names(df)) {
+    df <- df[!is_unmodified_peptide(df$Peptide.Note), , drop = FALSE]
+  }
+  if (!is.null(selected_peptides) && "Peptide.Note" %in% names(df)) {
+    df <- df[df$Peptide.Note %in% selected_peptides, , drop = FALSE]
+  }
+  if (!is.null(selected_samples) && "Replicate.Name" %in% names(df)) {
+    df <- df[df$Replicate.Name %in% selected_samples, , drop = FALSE]
+  }
+  df
+}
+
 #' Plot PCA scores
 #'
-#' Builds a PCA score plot from a processed HistoneMod percentage table.
+#' Builds a PCA score plot from a processed HistoneMod table. The value column,
+#' transformation, missing-value policy, group order and group colours are
+#' configurable so the same function can be used for percentages, ratios and
+#' transformed (CLR/logit) data.
 #'
 #' @param data_merge A processed data frame containing at least
-#'   `Replicate.Name`, `Peptide.Note`, and `Percentage`.
+#'   `Replicate.Name`, `Peptide.Note` and the column named by `value_col`.
 #' @param show_ellipse Logical; if `TRUE`, draws 95 percent confidence ellipses
 #'   for groups with enough samples.
 #' @param color_palette Character palette name. Supported values are
 #'   `"viridis"`, `"magma"`, `"plasma"`, `"inferno"`, `"cividis"`,
 #'   `"rocket"`, `"mako"`, and `"turbo"`.
+#' @param value_col Character; name of the numeric value column.
+#' @param transform Character; one of `"none"`, `"clr"`, `"logit"` or `"log2"`.
+#'   `"clr"` is recommended for compositional percentage data.
+#' @param missing Character; missing sample-by-peptide values are replaced by
+#'   `"zero"` (default), `"min"` (half the smallest positive value) or dropped
+#'   with `"drop"`.
+#' @param group_order Optional character vector giving the display order of
+#'   groups.
+#' @param group_colors Optional named character vector of colours per group.
 #'
 #' @return A `ggplot` object.
 #' @export
-plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis") {
+plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis",
+                     value_col = "Percentage",
+                     transform = c("none", "clr", "logit", "log2"),
+                     missing = c("zero", "drop", "min"),
+                     group_order = NULL, group_colors = NULL) {
+  transform <- match.arg(transform)
+  missing <- match.arg(missing)
 
   colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
-
-  if ("Replicate.Name" %in% colnames(data_merge)) {
-    data_merge$Replicate.Name <- as.character(data_merge$Replicate.Name)
-  }
-  if ("Peptide.Note" %in% colnames(data_merge)) {
-    data_merge$Peptide.Note <- as.character(data_merge$Peptide.Note)
-  }
-  if ("Group" %in% colnames(data_merge)) {
-    data_merge$Group <- as.character(data_merge$Group)
+  if (!value_col %in% colnames(data_merge)) {
+    stop("Column '", value_col, "' not found in data_merge.", call. = FALSE)
   }
 
+  for (col in c("Replicate.Name", "Peptide.Note", "Group")) {
+    if (col %in% colnames(data_merge)) {
+      data_merge[[col]] <- as.character(data_merge[[col]])
+    }
+  }
 
-  wide <- data_merge %>%
-    select(Replicate.Name, Peptide.Note, Percentage) %>%
-    pivot_wider(names_from = Peptide.Note, values_from = Percentage, values_fill = 0)
-  
+  duplicates <- data_merge %>%
+    dplyr::count(Replicate.Name, Peptide.Note) %>%
+    dplyr::filter(n > 1)
+  if (nrow(duplicates) > 0) {
+    stop("Duplicated Replicate.Name x Peptide.Note values; aggregate them before PCA.", call. = FALSE)
+  }
+
+  long <- data_merge[, c("Replicate.Name", "Peptide.Note", value_col), drop = FALSE]
+  colnames(long)[3] <- "Value"
+
+  fill_value <- switch(missing,
+    "zero" = 0,
+    "min" = {
+      positive <- long$Value[!is.na(long$Value) & long$Value > 0]
+      if (length(positive) == 0) 0 else min(positive) / 2
+    },
+    "drop" = NA_real_
+  )
+
+  wide <- tidyr::pivot_wider(
+    long,
+    names_from = "Peptide.Note",
+    values_from = "Value",
+    values_fill = fill_value
+  )
+
   if (nrow(wide) == 0) return(ggplot() + ggtitle("No data for PCA"))
-  
-  numeric_mat <- wide %>% select(-Replicate.Name) %>% dplyr::select(where(is.numeric))
-  sds <- apply(numeric_mat, 2, sd, na.rm = TRUE)
-  keep_cols <- names(sds)[sds > 0]
-  
+
+  numeric_mat <- as.matrix(wide[, setdiff(colnames(wide), "Replicate.Name"), drop = FALSE])
+  storage.mode(numeric_mat) <- "numeric"
+  rownames(numeric_mat) <- as.character(wide$Replicate.Name)
+
+  if (missing == "drop") {
+    keep_features <- colSums(is.na(numeric_mat)) == 0
+    numeric_mat <- numeric_mat[, keep_features, drop = FALSE]
+    complete_rows <- rowSums(is.na(numeric_mat)) == 0
+    numeric_mat <- numeric_mat[complete_rows, , drop = FALSE]
+    if (nrow(numeric_mat) == 0) {
+      return(ggplot() + ggtitle("No complete samples for PCA"))
+    }
+  }
+
+  if (transform != "none") {
+    numeric_mat <- transform_composition(numeric_mat, method = transform)
+  }
+
+  sds <- apply(numeric_mat, 2, stats::sd, na.rm = TRUE)
+  keep_cols <- names(sds)[is.finite(sds) & sds > 0]
+
   if (length(keep_cols) < 2) {
     return(ggplot() + geom_text(aes(0, 0, label = "Not enough variable peptides for PCA")) + theme_void())
   }
-  
+
   pca_mat <- numeric_mat[, keep_cols, drop = FALSE]
-  
-  # PCA
-  pca_res <- prcomp(pca_mat, center = TRUE, scale. = TRUE)
+
+  pca_res <- stats::prcomp(pca_mat, center = TRUE, scale. = transform %in% c("none", "log2"))
   scores <- as.data.frame(pca_res$x)
-  
-  # Keep Replicate.Name
-  scores$Replicate.Name <- as.character(wide$Replicate.Name)
-  
-  # Group
+  scores$Replicate.Name <- rownames(pca_mat)
+
   if ("Group" %in% colnames(data_merge)) {
-    scores <- left_join(scores, data_merge %>% select(Replicate.Name, Group) %>% distinct(),
-                        by = "Replicate.Name")
-    scores$Group <- factor(scores$Group)
+    scores <- dplyr::left_join(
+      scores,
+      data_merge %>% dplyr::select(Replicate.Name, Group) %>% dplyr::distinct(),
+      by = "Replicate.Name"
+    )
+    scores$Group <- factor(scores$Group, levels = group_levels(scores$Group, group_order))
   } else {
     scores$Group <- factor("All")
   }
@@ -298,16 +385,20 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis")
   variance_explained <- summary(pca_res)$importance[2, ]
   
   # Select color scale
-  color_scale <- switch(color_palette,
-                        "viridis" = scale_color_viridis_d(),
-                        "magma" = scale_color_viridis_d(option = "magma"),
-                        "plasma" = scale_color_viridis_d(option = "plasma"),
-                        "inferno" = scale_color_viridis_d(option = "inferno"),
-                        "cividis" = scale_color_viridis_d(option = "cividis"),
-                        "rocket" = scale_color_viridis_d(option = "rocket"),
-                        "mako" = scale_color_viridis_d(option = "mako"),
-                        "turbo" = scale_color_viridis_d(option = "turbo"),
-                        scale_color_viridis_d())
+  color_scale <- if (!is.null(group_colors)) {
+    scale_color_manual(values = group_colors)
+  } else {
+    switch(color_palette,
+           "viridis" = scale_color_viridis_d(),
+           "magma" = scale_color_viridis_d(option = "magma"),
+           "plasma" = scale_color_viridis_d(option = "plasma"),
+           "inferno" = scale_color_viridis_d(option = "inferno"),
+           "cividis" = scale_color_viridis_d(option = "cividis"),
+           "rocket" = scale_color_viridis_d(option = "rocket"),
+           "mako" = scale_color_viridis_d(option = "mako"),
+           "turbo" = scale_color_viridis_d(option = "turbo"),
+           scale_color_viridis_d())
+  }
   
   p <- ggplot(scores, aes(x = PC1, y = PC2, color = Group)) +
     geom_point(size = 6) +
@@ -393,11 +484,11 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis")
 # ------------------------
 #' Plot a heatmap
 #'
-#' Converts a processed HistoneMod percentage table into a peptide-by-sample
-#' matrix and renders a heatmap with `pheatmap`.
+#' Converts a processed HistoneMod table into a peptide-by-sample matrix and
+#' renders a heatmap with `pheatmap`.
 #'
 #' @param data_merge A processed data frame containing at least
-#'   `Replicate.Name`, `Peptide.Note`, and `Percentage`.
+#'   `Replicate.Name`, `Peptide.Note` and the column named by `value_col`.
 #' @param cluster_rows Logical; whether peptides should be clustered.
 #' @param cluster_cols Logical; whether samples should be clustered.
 #' @param color_palette Character palette name. Supported values are
@@ -406,6 +497,12 @@ plot_pca <- function(data_merge, show_ellipse = TRUE, color_palette = "viridis")
 #' @param fontsize Base font size passed to `pheatmap`.
 #' @param fontsize_row Optional row label font size.
 #' @param fontsize_col Optional column label font size.
+#' @param value_col Character; name of the numeric value column.
+#' @param missing Character; how to handle missing values (`"zero"`, `"min"`
+#'   or `"drop"`).
+#' @param scale Character; `"none"` (default) or `"row"` for row z-scores.
+#' @param show_group_annotation Logical; add sample group annotation when a
+#'   `Group` column is present.
 #'
 #' @return A `pheatmap` result object.
 #' @export
@@ -416,35 +513,92 @@ plot_heatmap <- function(
   color_palette = "viridis",
   fontsize = 12,
   fontsize_row = NULL,
-  fontsize_col = NULL
+  fontsize_col = NULL,
+  value_col = "Percentage",
+  missing = c("zero", "drop", "min"),
+  scale = c("none", "row"),
+  show_group_annotation = TRUE
 ) {
-  colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
+  missing <- match.arg(missing)
+  scale <- match.arg(scale)
 
-  if ("Replicate.Name" %in% colnames(data_merge)) {
-    data_merge$Replicate.Name <- as.character(data_merge$Replicate.Name)
+  colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
+  if (!value_col %in% colnames(data_merge)) {
+    stop("Column '", value_col, "' not found in data_merge.", call. = FALSE)
   }
-  if ("Peptide.Note" %in% colnames(data_merge)) {
-    data_merge$Peptide.Note <- as.character(data_merge$Peptide.Note)
+
+  for (col in c("Replicate.Name", "Peptide.Note", "Group")) {
+    if (col %in% colnames(data_merge)) {
+      data_merge[[col]] <- as.character(data_merge[[col]])
+    }
   }
-  
-  heat_data <- data_merge %>%
-    select(Replicate.Name, Peptide.Note, Percentage) %>%
-    pivot_wider(names_from = Replicate.Name, values_from = Percentage, values_fill=0)
-  
+
+  duplicates <- data_merge %>%
+    dplyr::count(Replicate.Name, Peptide.Note) %>%
+    dplyr::filter(n > 1)
+  if (nrow(duplicates) > 0) {
+    stop("Duplicated Replicate.Name x Peptide.Note values; aggregate them before the heatmap.", call. = FALSE)
+  }
+
+  long <- data_merge[, c("Replicate.Name", "Peptide.Note", value_col), drop = FALSE]
+  colnames(long)[3] <- "Value"
+
+  fill_value <- switch(missing,
+    "zero" = 0,
+    "min" = {
+      positive <- long$Value[!is.na(long$Value) & long$Value > 0]
+      if (length(positive) == 0) 0 else min(positive) / 2
+    },
+    "drop" = NA_real_
+  )
+
+  heat_data <- tidyr::pivot_wider(
+    long,
+    names_from = "Replicate.Name",
+    values_from = "Value",
+    values_fill = fill_value
+  )
+
   # Sort by name if not clustering
-  if(!cluster_rows) {
-    heat_data <- heat_data %>% arrange(Peptide.Note)
+  if (!cluster_rows) {
+    heat_data <- heat_data %>% dplyr::arrange(Peptide.Note)
   }
-  
-  if(ncol(heat_data) <= 1) stop("Not enough data for heatmap")
-  
+
+  if (ncol(heat_data) <= 1) stop("Not enough data for heatmap")
+
   rownames_mat <- as.character(heat_data$Peptide.Note)
-  heat_mat <- as.matrix(heat_data %>% select(-Peptide.Note))
+  heat_mat <- as.matrix(heat_data[, setdiff(colnames(heat_data), "Peptide.Note"), drop = FALSE])
+  storage.mode(heat_mat) <- "numeric"
   rownames(heat_mat) <- rownames_mat
-  
+  colnames(heat_mat) <- as.character(colnames(heat_mat))
+
+  if (missing == "drop") {
+    heat_mat <- heat_mat[stats::complete.cases(heat_mat), , drop = FALSE]
+    if (nrow(heat_mat) == 0) stop("No complete peptides left for the heatmap")
+  }
+
+  if (scale == "row") {
+    row_means <- rowMeans(heat_mat, na.rm = TRUE)
+    row_sds <- apply(heat_mat, 1, stats::sd, na.rm = TRUE)
+    row_sds[!is.finite(row_sds) | row_sds == 0] <- 1
+    heat_mat <- sweep(heat_mat - row_means, 1, row_sds, "/")
+    heat_mat[!is.finite(heat_mat)] <- 0
+  }
+
   # Sort columns by name if not clustering
-  if(!cluster_cols) {
-    heat_mat <- heat_mat[, order(colnames(heat_mat)), drop=FALSE]
+  if (!cluster_cols) {
+    heat_mat <- heat_mat[, order(colnames(heat_mat)), drop = FALSE]
+  }
+
+  annotation_col <- NULL
+  if (isTRUE(show_group_annotation) && "Group" %in% colnames(data_merge)) {
+    annotation <- as.data.frame(
+      unique(data_merge[, c("Replicate.Name", "Group"), drop = FALSE]),
+      stringsAsFactors = FALSE
+    )
+    rownames(annotation) <- annotation$Replicate.Name
+    annotation$Replicate.Name <- NULL
+    annotation_col <- annotation[colnames(heat_mat), , drop = FALSE]
   }
   
   # Select color palette
@@ -483,6 +637,7 @@ plot_heatmap <- function(
     fontsize_col = fontsize_col,
     border_color = "grey50",
     angle_col = 45,
+    annotation_col = annotation_col,
     main = "",
     silent = TRUE
   )
@@ -499,7 +654,7 @@ plot_heatmap <- function(
 # ------------------------
 #' Plot a single-peptide barplot
 #'
-#' Summarises peptide percentages by group and renders a single barplot with
+#' Summarises peptide values by group and renders a single barplot with
 #' optional significance testing.
 #'
 #' @param data_merge A processed data frame returned by
@@ -513,6 +668,12 @@ plot_heatmap <- function(
 #' @param y_limits Optional numeric vector of length 2 for the y-axis range.
 #' @param font_scale Numeric multiplier used to scale plot text.
 #' @param title_text Optional custom plot title.
+#' @param value_col Character; name of the numeric value column.
+#' @param group_order Optional character vector giving the display order of
+#'   groups.
+#' @param group_colors Optional named character vector of colours per group.
+#' @param error_bar Character; `"se"` (default), `"sd"` or `"ci95"`.
+#' @param show_n Logical; print the number of replicates above each bar.
 #'
 #' @return A `ggplot` object.
 #' @export
@@ -524,9 +685,18 @@ plot_barplot_single <- function(
   color_palette = "viridis",
   y_limits = NULL,
   font_scale = 1,
-  title_text = NULL
+  title_text = NULL,
+  value_col = "Percentage",
+  group_order = NULL,
+  group_colors = NULL,
+  error_bar = c("se", "sd", "ci95"),
+  show_n = FALSE
 ) {
+  error_bar <- match.arg(error_bar)
   colnames(data_merge) <- gsub("\\s+", ".", colnames(data_merge))
+  if (!value_col %in% colnames(data_merge)) {
+    stop("Column '", value_col, "' not found in data_merge.", call. = FALSE)
+  }
 
   font_scale <- suppressWarnings(as.numeric(font_scale))
   if (!is.finite(font_scale) || is.na(font_scale) || font_scale <= 0) font_scale <- 1
@@ -537,46 +707,64 @@ plot_barplot_single <- function(
   pt_to_mm <- function(pt) pt / 2.845276
   axis_tick_pt <- 14
   axis_tick_mm <- pt_to_mm(axis_tick_pt) * font_scale
-  
+
   df <- data_merge
-  if(!is.null(protein_name)) df <- df %>% filter(Protein.Name == protein_name)
-  df_sub <- df %>% filter(Peptide.Note == peptide_name)
-  
-  if(nrow(df_sub) == 0) {
-    return(ggplot() + 
-           geom_text(aes(0, 0, label = "No data available"), size = 6 * font_scale) + 
+  if (!is.null(protein_name)) df <- df %>% dplyr::filter(Protein.Name == protein_name)
+  df_sub <- df %>% dplyr::filter(Peptide.Note == peptide_name)
+
+  if (nrow(df_sub) == 0) {
+    return(ggplot() +
+           geom_text(aes(0, 0, label = "No data available"), size = 6 * font_scale) +
            theme_void())
   }
-  
+
+  df_sub$Group <- as.character(df_sub$Group)
+  df_sub$Value <- as.numeric(df_sub[[value_col]])
+
   summary_data <- df_sub %>%
-    group_by(Group) %>%
-    summarise(mean_percentage = mean(Percentage, na.rm=TRUE),
-              sd_percentage = sd(Percentage, na.rm=TRUE),
-              n=n(),
-              se = sd_percentage / sqrt(n),
-              .groups="drop") %>%
-    arrange(Group)
-  
+    dplyr::group_by(Group) %>%
+    dplyr::summarise(
+      mean_value = mean(Value, na.rm = TRUE),
+      sd_value = stats::sd(Value, na.rm = TRUE),
+      n = sum(!is.na(Value)),
+      .groups = "drop"
+    ) %>%
+    dplyr::mutate(
+      se = sd_value / sqrt(pmax(n, 1)),
+      ci95 = ifelse(n > 1, se * stats::qt(0.975, df = pmax(n - 1, 1)), NA_real_),
+      err = switch(error_bar,
+                   "se" = se,
+                   "sd" = sd_value,
+                   "ci95" = ci95),
+      Group = factor(Group, levels = group_levels(Group, group_order))
+    ) %>%
+    dplyr::arrange(Group)
+
   # Calculate y-axis range first to accommodate significance brackets
-  y_base <- max(summary_data$mean_percentage + summary_data$se, na.rm=TRUE)
-  
+  y_base <- max(summary_data$mean_value + ifelse(is.na(summary_data$err), 0, summary_data$err), na.rm = TRUE)
+  if (!is.finite(y_base)) y_base <- 0
+
   # Select fill scale
-  fill_scale <- switch(color_palette,
-                       "viridis" = scale_fill_viridis_d(),
-                       "magma" = scale_fill_viridis_d(option = "magma"),
-                       "plasma" = scale_fill_viridis_d(option = "plasma"),
-                       "inferno" = scale_fill_viridis_d(option = "inferno"),
-                       "cividis" = scale_fill_viridis_d(option = "cividis"),
-                       "rocket" = scale_fill_viridis_d(option = "rocket"),
-                       "mako" = scale_fill_viridis_d(option = "mako"),
-                       "turbo" = scale_fill_viridis_d(option = "turbo"),
-                       scale_fill_viridis_d())
-  
-  p <- ggplot(summary_data, aes(x=Group, y=mean_percentage, fill=Group)) +
-    geom_col(position=position_dodge(width=0.9)) +
-    geom_errorbar(aes(ymin=mean_percentage - se, ymax=mean_percentage + se),
-                  width=0.2, position=position_dodge(width=0.9)) +
-    labs(title = title_text, y = "Percentage", x = "Group") +
+  fill_scale <- if (!is.null(group_colors)) {
+    scale_fill_manual(values = group_colors)
+  } else {
+    switch(color_palette,
+           "viridis" = scale_fill_viridis_d(),
+           "magma" = scale_fill_viridis_d(option = "magma"),
+           "plasma" = scale_fill_viridis_d(option = "plasma"),
+           "inferno" = scale_fill_viridis_d(option = "inferno"),
+           "cividis" = scale_fill_viridis_d(option = "cividis"),
+           "rocket" = scale_fill_viridis_d(option = "rocket"),
+           "mako" = scale_fill_viridis_d(option = "mako"),
+           "turbo" = scale_fill_viridis_d(option = "turbo"),
+           scale_fill_viridis_d())
+  }
+
+  p <- ggplot(summary_data, aes(x = Group, y = mean_value, fill = Group)) +
+    geom_col(position = position_dodge(width = 0.9)) +
+    geom_errorbar(aes(ymin = mean_value - err, ymax = mean_value + err),
+                  width = 0.2, position = position_dodge(width = 0.9), na.rm = TRUE) +
+    labs(title = title_text, y = value_col, x = "Group") +
     theme_minimal(base_family = "sans") +
     theme(
       panel.grid = element_blank(),
@@ -589,61 +777,71 @@ plot_barplot_single <- function(
       plot.title = element_text(size = 14 * font_scale, face = "plain", hjust = 0)
     ) +
     fill_scale
-  
-  # Add ANOVA p-value to top-right corner if significance testing is enabled
+
+  if (isTRUE(show_n)) {
+    p <- p + geom_text(
+      aes(y = mean_value + ifelse(is.na(err), 0, err), label = paste0("n=", n)),
+      vjust = -0.5,
+      size = axis_tick_mm * 0.9,
+      show.legend = FALSE
+    )
+  }
+
+  # Add global test p-value to the top-right corner if significance testing is enabled
   anova_present <- FALSE
-  if(add_signif && length(unique(df_sub$Group)) >= 2) {
+  groups <- unique(df_sub$Group)
+  if (add_signif && length(groups) >= 2) {
     anova_pval <- tryCatch({
-      if(length(unique(df_sub$Group)) == 2) {
-        # Use t-test for 2 groups
-        t.test(Percentage ~ Group, data=df_sub)$p.value
+      if (length(groups) == 2) {
+        # Use Welch t-test for 2 groups
+        stats::t.test(Value ~ Group, data = df_sub)$p.value
       } else {
         # Use ANOVA for 3+ groups
-        aov_result <- aov(Percentage ~ Group, data=df_sub)
-        summary(aov_result)[[1]]["Pr(>F)"][1,1]
+        aov_result <- stats::aov(Value ~ Group, data = df_sub)
+        summary(aov_result)[[1]][["Pr(>F)"]][1]
       }
-    }, error=function(e) NA)
-    
-    if(!is.na(anova_pval)) {
+    }, error = function(e) NA_real_)
+
+    if (!is.na(anova_pval)) {
       anova_present <- TRUE
-      anova_text <- if(length(unique(df_sub$Group)) == 2) {
-        sprintf("t-test p = %.6f", anova_pval)
+      anova_text <- if (length(groups) == 2) {
+        sprintf("Welch t-test p = %.6f", anova_pval)
       } else {
         sprintf("ANOVA p = %.6f", anova_pval)
       }
-      p <- p + annotate("text", x=Inf, y=Inf, label=anova_text,
-                       hjust=1.1, vjust=1.5, size = axis_tick_mm * 1, fontface="plain")
+      p <- p + annotate("text", x = Inf, y = Inf, label = anova_text,
+                        hjust = 1.1, vjust = 1.5, size = axis_tick_mm * 1, fontface = "plain")
     }
   }
-  
+
   # Add significance stars (only p < 0.05)
   y_max <- y_base * 1.5  # Default extension
-  if(add_signif && length(unique(df_sub$Group))>=2) {
+  if (add_signif && length(groups) >= 2) {
     # CUSTOMIZE: If you want a different significance threshold, change 0.05.
-    comps <- combn(unique(df_sub$Group), 2, simplify=FALSE)
+    comps <- utils::combn(groups, 2, simplify = FALSE)
     # Keep the first bracket closer to the bars
     step <- if (is.finite(y_base) && y_base > 0) y_base * 0.1 else 0.5
     ypos <- y_base + step
     annotations <- c()
     signif_comps <- list()
     y_positions <- c()
-    
-    for(cmp in comps) {
-      subdf <- df_sub %>% filter(Group %in% cmp)
-      pval <- tryCatch(t.test(Percentage ~ Group, data=subdf)$p.value, error=function(e) NA)
-      if(!is.na(pval) && pval < 0.05) { 
-        signif_comps[[length(signif_comps)+1]] <- cmp
-        if(pval < 0.001) ann <- "***"
-        else if(pval < 0.01) ann <- "**"
+
+    for (cmp in comps) {
+      subdf <- df_sub %>% dplyr::filter(Group %in% cmp)
+      pval <- tryCatch(stats::t.test(Value ~ Group, data = subdf)$p.value, error = function(e) NA_real_)
+      if (!is.na(pval) && pval < 0.05) {
+        signif_comps[[length(signif_comps) + 1]] <- cmp
+        if (pval < 0.001) ann <- "***"
+        else if (pval < 0.01) ann <- "**"
         else ann <- "*"
         annotations <- c(annotations, ann)
         y_positions <- c(y_positions, ypos)
         ypos <- ypos + step
       }
     }
-    
+
     # Add significance labels
-    if(length(signif_comps) > 0) {
+    if (length(signif_comps) > 0) {
       p <- p + geom_signif(comparisons = signif_comps,
                            annotations = annotations,
                            y_position = y_positions,
@@ -654,32 +852,61 @@ plot_barplot_single <- function(
       # Extend y-axis to show all significance brackets
       y_max <- max(y_positions) + step * 1.5
 
-      # Leave extra room above the highest bracket for the ANOVA label
+      # Leave extra room above the highest bracket for the test label
       if (isTRUE(anova_present)) {
         y_max <- y_max + step * 1.2
       }
     }
   }
-  
+
   # Set y-axis limits after calculating significance positions
-  auto_y_max <- if(is.finite(y_max) && y_max > 0) y_max else 1
-  plot_ylim <- if(is.null(y_limits) || length(y_limits) != 2 || any(!is.finite(y_limits))) {
+  auto_y_max <- if (is.finite(y_max) && y_max > 0) y_max else 1
+  plot_ylim <- if (is.null(y_limits) || length(y_limits) != 2 || any(!is.finite(y_limits))) {
     c(0, auto_y_max)
   } else {
     as.numeric(y_limits)
   }
   plot_ylim <- sort(plot_ylim)
   p <- p + coord_cartesian(ylim = plot_ylim)
-  
+
   return(p)
 }
 
 ##### App Metadata & Version Checking #####
-# CUSTOMIZE: Update APP_VERSION when you release; set GITHUB_REPO to your repo.
+# CUSTOMIZE: Set GITHUB_REPO to your repo. The app version is read from
+# DESCRIPTION (single source of truth), so it no longer needs manual updates.
 # ------------------------
 # 5. App version helpers
 # ------------------------
-APP_VERSION <- "0.6.2"
+HISTONEMOD_FALLBACK_VERSION <- "0.7.0"
+
+# Internal helper that resolves the package version from DESCRIPTION.
+# When the package is loaded with pkgload (development), system.file() is
+# shimmed to the source tree, so this also reports the development version.
+histonemod_package_version <- function() {
+  desc_path <- tryCatch(
+    system.file("DESCRIPTION", package = "HistoneMod"),
+    error = function(e) ""
+  )
+  if (length(desc_path) == 1 && nzchar(desc_path) && file.exists(desc_path)) {
+    version <- tryCatch(
+      as.character(read.dcf(desc_path, fields = "Version")[1, 1]),
+      error = function(e) NA_character_
+    )
+    if (length(version) == 1 && !is.na(version) && nzchar(version)) {
+      return(version)
+    }
+  }
+
+  desc <- tryCatch(utils::packageDescription("HistoneMod"), error = function(e) NULL)
+  if (!is.null(desc) && !is.null(desc$Version) && nzchar(desc$Version)) {
+    return(desc$Version)
+  }
+
+  HISTONEMOD_FALLBACK_VERSION
+}
+
+APP_VERSION <- histonemod_package_version()
 GITHUB_REPO <- "jiehua1995/HistoneMod"
 
 # Internal helper for normalizing version strings.
@@ -690,6 +917,14 @@ normalize_version <- function(x) {
   x <- sub("^v", "", x, ignore.case = TRUE)
   if(identical(x, "")) return(NA_character_)
   x
+}
+
+# Internal helper for checking whether a release is newer than the running one.
+version_is_newer <- function(latest, current) {
+  latest <- normalize_version(latest)
+  current <- normalize_version(current)
+  if (is.na(latest) || is.na(current)) return(FALSE)
+  isTRUE(utils::compareVersion(latest, current) > 0)
 }
 
 # Internal helper for querying the latest GitHub release version.
@@ -718,9 +953,11 @@ github_latest_release_version <- function(repo) {
     }
   }
 
-  parsed <- tryCatch(jsonlite::fromJSON(api_url), error = function(e) NULL)
-  if(!is.null(parsed) && !is.null(parsed$tag_name)) {
-    return(normalize_version(parsed$tag_name))
+  if(requireNamespace("jsonlite", quietly = TRUE)) {
+    parsed <- tryCatch(jsonlite::fromJSON(api_url), error = function(e) NULL)
+    if(!is.null(parsed) && !is.null(parsed$tag_name)) {
+      return(normalize_version(parsed$tag_name))
+    }
   }
   NA_character_
 }
