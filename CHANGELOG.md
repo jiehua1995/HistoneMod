@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🔧 Changed
 - Version bumped to `0.9.0`.
 - The Sites tab gained a Site map view; the Differential tab gained an effect-size heatmap; the PCA tab gained scree and loadings plots; the QC tab gained correlation, missingness and RT views.
+- Rewritten English README and pkgdown homepage with a package logo, annotated app screenshots, installation instructions, a feature overview and a quick-start guide.
 
 ---
 

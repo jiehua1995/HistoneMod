@@ -1,5 +1,7 @@
 ^\.github$
 ^_pkgdown\.yml$
+^pkgdown$
+^tools$
 ^docs$
 ^renv$
 ^renv\.lock$
