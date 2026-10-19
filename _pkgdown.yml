@@ -53,6 +53,38 @@ reference:
   - plot_composition
   - plot_qc_missingness
   - plot_qc_cv
+- title: Site-level analysis
+  desc: Parse modification sites, estimate occupancy and analyse cross-talk.
+  contents:
+  - parse_peptide_sites
+  - compute_site_occupancy
+  - plot_occupancy
+  - compute_crosstalk
+  - plot_crosstalk
+- title: Histone mark annotation
+  desc: Map sites to canonical mark names, functional classes and enzymes.
+  contents:
+  - histone_marks
+  - normalise_histone_protein
+  - annotate_sites
+  - summarise_by_class
+  - plot_mark_classes
+- title: Dose-response and power
+  desc: Fit dose-response curves and plan replicate numbers.
+  contents:
+  - fit_dose_response
+  - plot_dose_response
+  - simulate_histone_data
+  - estimate_power
+  - plot_power_curve
+- title: Projects and reporting
+  desc: Save complete analyses and generate manuscript-ready text.
+  contents:
+  - save_project
+  - load_project
+  - export_analysis_bundle
+  - methods_text
+  - statistics_table
 - title: Session and utilities
   contents:
   - save_session

@@ -34,6 +34,6 @@
 #' @importFrom grid gpar grid.draw grid.layout grid.lines grid.newpage
 #' @importFrom grid grid.raster grid.rect grid.text popViewport pushViewport
 #' @importFrom grid unit viewport
-#' @importFrom stats aov prcomp sd t.test
+#' @importFrom stats aov prcomp sd t.test SSfpl
 #' @importFrom utils capture.output combn packageDescription tail
 "_PACKAGE"

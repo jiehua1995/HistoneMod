@@ -562,18 +562,7 @@ histonemod_server <- function(input, output, session) {
         file,
         ms1_data(),
         sample_data(),
-        settings = list(
-          quant_mode = input$quant_mode,
-          ratio_normalize = input$ratio_normalize,
-          transform = input$data_transform,
-          missing = input$missing_policy,
-          exclude_un = input$exclude_un,
-          group_order = input$group_order,
-          group_colors = input$group_colors,
-          pca_palette = input$pca_palette,
-          heatmap_palette = input$heatmap_palette,
-          barplot_palette = input$barplot_palette
-        )
+        settings = current_settings()
       )
     }
   )
@@ -965,6 +954,23 @@ histonemod_server <- function(input, output, session) {
 
   group_order_reactive <- reactive(parse_group_order(input$group_order))
   group_colors_reactive <- reactive(parse_group_colors(input$group_colors))
+
+  current_settings <- function() {
+    list(
+      quant_mode = quant_mode(),
+      ratio_normalize = input$ratio_normalize,
+      transform = transform_mode(),
+      missing = missing_mode(),
+      exclude_un = isTRUE(input$exclude_un),
+      group_order = input$group_order,
+      group_colors = input$group_colors,
+      pca_palette = input$pca_palette,
+      heatmap_palette = input$heatmap_palette,
+      barplot_palette = input$barplot_palette,
+      test = "Welch t-test",
+      p_adjust = "BH"
+    )
+  }
 
   # Filter the data
   filtered_data_reactive <- reactive({
@@ -1664,6 +1670,28 @@ histonemod_server <- function(input, output, session) {
     }
   )
 
+  ##### Download: Project and Methods #####
+  output$download_project <- downloadHandler(
+    filename = function() paste0("HistoneMod_project_", Sys.Date(), ".rds"),
+    content = function(file) {
+      req(ms1_data(), sample_data())
+      save_project(
+        file,
+        ms1_data(),
+        sample_data(),
+        settings = current_settings(),
+        results = list()
+      )
+    }
+  )
+
+  output$download_methods <- downloadHandler(
+    filename = function() paste0("HistoneMod_methods_", Sys.Date(), ".txt"),
+    content = function(file) {
+      writeLines(methods_text(current_settings()), file)
+    }
+  )
+
   ##### Download: PDF Quick Report #####
   # CUSTOMIZE: The `pdf_cfg` list (below) is the central place to tweak page size,
   # margins, plot target sizes, and cover layout.
@@ -2189,5 +2217,7 @@ histonemod_server <- function(input, output, session) {
   ##### New analysis tabs (Shiny modules) #####
   differential_server("differential", filtered_data_reactive, value_col_reactive, group_order_reactive)
   composition_server("composition", filtered_data_reactive, value_col_reactive, group_order_reactive)
+  sites_server("sites", ms1_data, sample_data, group_order_reactive)
   qc_server("qc", filtered_data_reactive, value_col_reactive)
+  dose_server("dose", filtered_data_reactive, value_col_reactive)
 }

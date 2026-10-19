@@ -94,9 +94,60 @@ After launching the application:
 3. select peptides and samples of interest;
 4. choose whether unmodified peptides should be excluded;
 5. set the quantification mode, data transform, missing-value policy, group order and group colours in `Analysis Settings`;
-6. inspect the PCA, heatmap, barplot, composition, differential and QC tabs;
-7. export plots, the wide-format table, the differential results, or the quick PDF report;
+6. inspect the PCA, heatmap, barplot, composition, differential, site, dose-response and QC tabs;
+7. export plots, the wide-format table, differential results, the project file, methods text, or the quick PDF report;
 8. optionally save the session as an `.rds` file and reload it later.
+
+## Site occupancy, cross-talk and mark annotation
+
+Site-level views use the raw `MS1` table because occupancy requires the
+unmodified peptide states:
+
+```r
+sites <- HistoneMod::parse_peptide_sites(ms1)
+occupancy <- HistoneMod::compute_site_occupancy(ms1, sample)
+HistoneMod::plot_occupancy(occupancy)
+
+crosstalk <- HistoneMod::compute_crosstalk(ms1, sample = sample)
+HistoneMod::plot_crosstalk(crosstalk, type = "patterns")
+HistoneMod::plot_crosstalk(crosstalk, type = "cooccurrence")
+
+annotated <- HistoneMod::annotate_sites(sites)
+marks <- HistoneMod::histone_marks()
+```
+
+`parse_peptide_sites()` prefers Skyline `Peptide Modified Sequence Unimod Ids`
+and falls back to the `Peptide.Note` naming convention. Occupancy is calculated
+within each peptide backbone and includes the unmodified state in the
+denominator.
+
+## Dose-response and power analysis
+
+For inhibitor or dose experiments, add a numeric `Dose` column to the sample
+table and fit four-parameter logistic curves:
+
+```r
+fits <- HistoneMod::fit_dose_response(data, dose_col = "Dose",
+                                      value_col = "Percentage")
+HistoneMod::plot_dose_response(data, fits, dose_col = "Dose",
+                               value_col = "Percentage")
+
+power <- HistoneMod::estimate_power(n_replicates = c(3, 4, 5, 6))
+HistoneMod::plot_power_curve(power)
+```
+
+## Saving a complete project
+
+A project file stores inputs, settings and derived results, and
+`export_analysis_bundle()` writes a shareable folder with the tables, project
+file, settings and a reproduction script:
+
+```r
+HistoneMod::save_project("analysis.rds", ms1, sample, settings = list())
+project <- HistoneMod::load_project("analysis.rds")
+
+HistoneMod::export_analysis_bundle("analysis-bundle", ms1, sample)
+```
 
 ## Compositional data and differential testing
 
@@ -165,11 +216,17 @@ also exports a small set of analysis helpers:
   `map_columns()`, `validate_input_tables()`
 - quantification: `percentage_calculation()`, `quantify_peptides()`,
   `normalize_values()`, `transform_composition()`, `composition_matrix()`
-- analysis: `differential_analysis()`, `compute_metrics()`, `qc_summary()`
+- analysis: `differential_analysis()`, `compute_metrics()`, `qc_summary()`,
+  `parse_peptide_sites()`, `compute_site_occupancy()`, `compute_crosstalk()`,
+  `fit_dose_response()`, `estimate_power()`
+- annotation: `histone_marks()`, `annotate_sites()`, `summarise_by_class()`
 - plotting: `plot_pca()`, `plot_heatmap()`, `plot_barplot_single()`,
   `plot_volcano()`, `plot_composition()`, `plot_qc_missingness()`,
-  `plot_qc_cv()`
-- session: `save_session()`, `load_session()`
+  `plot_qc_cv()`, `plot_occupancy()`, `plot_crosstalk()`,
+  `plot_mark_classes()`, `plot_dose_response()`, `plot_power_curve()`
+- projects and reporting: `save_session()`, `load_session()`,
+  `save_project()`, `load_project()`, `export_analysis_bundle()`,
+  `methods_text()`, `statistics_table()`
 
 ## Next steps
 

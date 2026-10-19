@@ -878,7 +878,7 @@ plot_barplot_single <- function(
 # ------------------------
 # 5. App version helpers
 # ------------------------
-HISTONEMOD_FALLBACK_VERSION <- "0.7.0"
+HISTONEMOD_FALLBACK_VERSION <- "0.8.0"
 
 # Internal helper that resolves the package version from DESCRIPTION.
 # When the package is loaded with pkgload (development), system.file() is

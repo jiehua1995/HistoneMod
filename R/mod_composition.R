@@ -54,6 +54,22 @@ composition_ui <- function(id) {
       class = "text-end mb-2",
       downloadButton(ns("download_metrics"), "Download metrics (CSV)",
                      class = "btn btn-outline-secondary btn-sm")
+    ),
+    hr(),
+    h5(style = "font-weight: 600; color: #1e293b;", "Mark class summary"),
+    checkboxInput(ns("by_class"), "Summarise peptide values by annotated mark class", value = FALSE),
+    shiny::conditionalPanel(
+      condition = "input.by_class == true",
+      ns = ns,
+      div(class = "row",
+        div(class = "col-md-7", withSpinner(plotOutput(ns("class_plot"), height = "380px"))),
+        div(class = "col-md-5", div(class = "plot-container", DTOutput(ns("class_table"))))
+      ),
+      div(
+        class = "text-end mb-2",
+        downloadButton(ns("download_class"), "Download mark classes (CSV)",
+                       class = "btn btn-outline-secondary btn-sm")
+      )
     )
   )
 }
@@ -182,6 +198,48 @@ composition_server <- function(id, data_reactive,
         met <- metrics()
         shiny::req(!is.null(met))
         utils::write.csv(met, file, row.names = FALSE)
+      }
+    )
+
+    class_summary <- shiny::reactive({
+      data <- data_reactive()
+      shiny::req(data)
+      if (!isTRUE(input$by_class)) return(NULL)
+
+      sites <- tryCatch(parse_peptide_sites(data), error = function(e) NULL)
+      if (is.null(sites) || nrow(sites) == 0) return(NULL)
+
+      data$row_id <- seq_len(nrow(data))
+      joined <- merge(sites, data, by = "row_id", suffixes = c("", ".data"))
+      annotated <- tryCatch(annotate_sites(joined), error = function(e) joined)
+
+      tryCatch(
+        summarise_by_class(annotated, value_col = value_col(), group_col = "Group"),
+        error = function(e) NULL
+      )
+    })
+
+    output$class_plot <- renderPlot({
+      summary <- class_summary()
+      shiny::validate(shiny::need(
+        !is.null(summary) && nrow(summary) > 0,
+        "No annotated sites to summarise."
+      ))
+      plot_mark_classes(summary, group_order = group_order())
+    })
+
+    output$class_table <- renderDT({
+      summary <- class_summary()
+      shiny::req(!is.null(summary))
+      datatable(summary, options = list(pageLength = 10, scrollX = TRUE))
+    })
+
+    output$download_class <- downloadHandler(
+      filename = function() paste0("HistoneMod_mark_classes_", Sys.Date(), ".csv"),
+      content = function(file) {
+        summary <- class_summary()
+        shiny::req(!is.null(summary))
+        utils::write.csv(summary, file, row.names = FALSE)
       }
     )
 

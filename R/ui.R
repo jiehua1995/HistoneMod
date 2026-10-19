@@ -395,8 +395,12 @@ histonemod_ui <- function() {
           tabPanel("Differential", differential_ui("differential")),
           ##### Tab: Composition #####
           tabPanel("Composition", composition_ui("composition")),
+          ##### Tab: Sites (occupancy + cross-talk) #####
+          tabPanel("Sites", sites_ui("sites")),
           ##### Tab: QC #####
           tabPanel("QC", qc_ui("qc")),
+          ##### Tab: Dose-response #####
+          tabPanel("Dose-response", dose_ui("dose")),
           ##### Tab: Table #####
           tabPanel("Table",
                    div(class = "plot-container", style="max-height: 600px; overflow-y: auto;",
@@ -419,6 +423,16 @@ histonemod_ui <- function() {
                        br(),
                        downloadButton("download_plots_pdf", "Generate a Quick Report",
                           style="color:white; background-color:#3b82f6; font-size:20px; 
+                        padding:15px 30px; border-radius:12px; border:none; margin-top:16px; width:100%; display:block;"),
+
+                       br(),
+                       downloadButton("download_project", "Download Project (.rds)",
+                          style="color:white; background-color:#8b5cf6; font-size:20px; 
+                        padding:15px 30px; border-radius:12px; border:none; margin-top:16px; width:100%; display:block;"),
+
+                       br(),
+                       downloadButton("download_methods", "Download Methods Text (.txt)",
+                          style="color:white; background-color:#0f766e; font-size:20px; 
                         padding:15px 30px; border-radius:12px; border:none; margin-top:16px; width:100%; display:block;"),
                    
                      # Download status message

@@ -1,0 +1,67 @@
+protein,residue,position,mod,canonical,class,writer,eraser,reader,notes
+H3,K,4,me1,H3K4me1,active,KMT2C/KMT2D; SETD7,KDM1A; KDM5A/B/C,,Enhancer-associated; marks primed and active enhancers; most abundant K4 state at distal elements
+H3,K,4,me2,H3K4me2,active,KMT2A/B/C/D; SETD1A/B,KDM1A; KDM5A/B/C,WDR5,Promoter and enhancer associated; intermediate K4 methylation state
+H3,K,4,me3,H3K4me3,active,KMT2A/B; SETD1A/B; KMT2C/D,KDM5A/B/C; KDM1A,CHD1; TAF3; BPTF; SGF29,Active promoter mark; co-occurs with H3K27me3 at bivalent/poised promoters
+H3,K,4,un,H3K4un,other,,,,Unmodified lysine; baseline state for H3K4 methylation
+H3,K,9,me1,H3K9me1,repressive,EHMT1/EHMT2 (G9a/GLP),KDM3A/B; KDM4A/B/C,,Heterochromatin-associated; also detectable in transcribed regions
+H3,K,9,me2,H3K9me2,repressive,EHMT1/EHMT2 (G9a/GLP); SETDB1,KDM3A/B; KDM4A/B/C,HP1 (CBX1/CBX3/CBX5),Facultative heterochromatin; correlates with transcriptional repression
+H3,K,9,me3,H3K9me3,repressive,SUV39H1/SUV39H2; SETDB1,KDM4A/B/C,HP1 (CBX1/CBX3/CBX5),Constitutive heterochromatin and pericentromeric repeats
+H3,K,9,un,H3K9un,other,,,,Unmodified lysine; baseline state for H3K9 methylation
+H3,K,9,ac,H3K9ac,active,KAT2A; KAT2B; EP300; CREBBP,HDAC1/2; SIRT1,,Active chromatin; reciprocal with H3K9 methylation
+H3,K,14,ac,H3K14ac,active,KAT2A (GCN5); KAT2B (PCAF); EP300; CREBBP,HDAC1/2,,Active transcription; GCN5/PCAF substrate
+H3,K,14,un,H3K14un,other,,,,Unmodified lysine; baseline state for H3K14 acetylation
+H3,K,18,ac,H3K18ac,active,EP300; CREBBP,HDAC1/2; SIRT2,,Active promoter and enhancer; p300/CBP substrate
+H3,K,18,un,H3K18un,other,,,,Unmodified lysine; baseline state for H3K18 acetylation
+H3,K,23,ac,H3K23ac,active,EP300; CREBBP,HDAC1/2,,Active chromatin; enriched in transcribed gene bodies
+H3,K,23,un,H3K23un,other,,,,Unmodified lysine; baseline state for H3K23 acetylation
+H3,K,27,ac,H3K27ac,active,EP300; CREBBP,HDAC1/2; SIRT1,BRD2; BRD3; BRD4,Active enhancers and promoters; distinguishes active from poised enhancers
+H3,K,27,me1,H3K27me1,repressive,PRC2 (EZH1/EZH2 with EED and SUZ12),,,Polycomb product; enriched in broad repressive domains
+H3,K,27,me2,H3K27me2,repressive,PRC2 (EZH1/EZH2 with EED and SUZ12),KDM6A; KDM6B,,Broad repressive domains; intermediate PRC2 methylation state
+H3,K,27,me3,H3K27me3,repressive,PRC2 (EZH2/EZH1 with EED and SUZ12),KDM6A (UTX); KDM6B (JMJD3),PRC1 (CBX2/4/6/7/8); EED,Facultative heterochromatin; Polycomb repression; bivalent at poised promoters
+H3,K,27,un,H3K27un,other,,,,Unmodified lysine; baseline state for H3K27 methylation
+H3,K,36,me1,H3K36me1,active,NSD1/NSD2/NSD3,KDM2A/KDM2B,,Gene-body associated; NSD family monomethylates K36
+H3,K,36,me2,H3K36me2,active,NSD1/NSD2/NSD3; ASH1L,KDM2A/KDM2B; KDM4A,,Gene-body associated; intermediate K36 methylation state
+H3,K,36,me3,H3K36me3,active,SETD2 (KMT3A),KDM4A; KDM2A/KDM2B,MRG15; PSIP1 (LEDGF); ZMYND11; DNMT3B,Transcription elongation and splicing; coupled to RNA polymerase II CTD phosphorylation
+H3,K,36,un,H3K36un,other,,,,Unmodified lysine; baseline state for H3K36 methylation
+H3,K,56,ac,H3K56ac,active,EP300; CREBBP,HDAC1/2; SIRT1,,Chromatin assembly and genome stability; cell-cycle regulated
+H3,K,56,un,H3K56un,other,,,,Unmodified lysine; baseline state for H3K56 acetylation
+H3,K,79,me1,H3K79me1,active,DOT1L (KMT4),,,Transcription elongation; DOT1L is the only known H3K79 methyltransferase
+H3,K,79,me2,H3K79me2,active,DOT1L (KMT4),,AF9 (MLLT3); ENL (MLLT1),Transcription elongation; YEATS-domain readers
+H3,K,79,me3,H3K79me3,active,DOT1L (KMT4),,AF9; ENL,DOT1L product; no confirmed demethylase in mammals
+H3,K,79,un,H3K79un,other,,,,Unmodified lysine; baseline state for H3K79 methylation
+H3,S,10,ph,H3S10ph,other,AURKB; RPS6KA3 (RSK2); MSK1/2,PP1; PP2A,14-3-3 proteins,Mitotic chromosome condensation; also induced by transcription signalling
+H3,S,28,ph,H3S28ph,other,AURKB; MSK1/2,PP1; PP2A,14-3-3 proteins,Mitotic chromatin and stress-responsive transcription
+H3.3,S,31,ph,H3.3S31ph,active,,,,H3.3-specific residue (H3.1/H3.2 carry A31); associated with active transcription
+H4,S,1,ph,H4S1ph,other,CSNK2 (CK2),,,Chromatin assembly and DNA damage response; CK2 substrate
+H4,K,5,ac,H4K5ac,active,KAT5 (TIP60); KAT2A/KAT2B; HAT1,HDAC1/2,,Histone deposition and active chromatin; HAT1 acetylates newly synthesised H4
+H4,K,5,un,H4K5un,other,,,,Unmodified lysine; baseline state for H4K5 acetylation
+H4,K,8,ac,H4K8ac,active,KAT5 (TIP60); KAT2A/KAT2B; EP300,HDAC1/2,,Tail acetylation associated with active transcription
+H4,K,8,un,H4K8un,other,,,,Unmodified lysine; baseline state for H4K8 acetylation
+H4,K,12,ac,H4K12ac,active,KAT5 (TIP60); KAT2A/KAT2B; HAT1,HDAC1/2,,Histone deposition and active chromatin
+H4,K,12,un,H4K12un,other,,,,Unmodified lysine; baseline state for H4K12 acetylation
+H4,K,16,ac,H4K16ac,active,KAT8 (MOF/MSL); KAT5 (TIP60),SIRT1; SIRT2; HDAC1/2,,Hallmark of open chromatin; MSL complex; SIRT1/SIRT2 erase
+H4,K,16,un,H4K16un,other,,,,Unmodified lysine; baseline state for H4K16 acetylation
+H4,K,20,me1,H4K20me1,other,SETD8 (KMT5A),PHF8 (KDM7B),L3MBTL1,Cell-cycle regulated; SETD8 monomethylates K20
+H4,K,20,me2,H4K20me2,other,SUV420H1 (KMT5B); SUV420H2 (KMT5C),,53BP1; L3MBTL1,DNA damage response; 53BP1 recruitment
+H4,K,20,me3,H4K20me3,repressive,SUV420H1 (KMT5B); SUV420H2 (KMT5C),,53BP1,Constitutive heterochromatin and telomeres
+H4,K,20,un,H4K20un,other,,,,Unmodified lysine; baseline state for H4K20 methylation
+H2A,S,1,ph,H2AS1ph,other,,,,N-terminal tail phosphorylation reported in chromatin regulation; less characterised than H2A.X S139ph
+H2A,K,5,ac,H2AK5ac,active,,,,Associated with active chromatin in mammals; writer not firmly established
+H2A,K,5,un,H2AK5un,other,,,,Unmodified lysine; baseline state for H2AK5 acetylation
+H2A,K,119,ub,H2AK119ub,repressive,PRC1 (RING1A/RING1B with BMI1),BAP1; USP16; USP21,,Polycomb-mediated repression; monoubiquitination of the C-terminal lysine
+H2A,K,119,un,H2AK119un,other,,,,Unmodified lysine; baseline state for H2AK119 ubiquitination
+H2A.Z,K,4,ac,H2A.ZK4ac,active,KAT5 (TIP60); KAT2A (GCN5),HDAC1/2,,Variant-specific acetylation associated with active and poised promoters
+H2A.Z,K,7,ac,H2A.ZK7ac,active,KAT5 (TIP60); KAT2A (GCN5),HDAC1/2,,Variant-specific acetylation associated with active transcription
+H2A.Z,K,11,ac,H2A.ZK11ac,active,KAT5 (TIP60); KAT2A (GCN5),HDAC1/2,,Variant-specific acetylation at the H2A.Z N-terminal tail
+H2B,S,14,ph,H2BS14ph,other,STK4 (MST1),,,Apoptotic chromatin condensation; MST1/Krs kinase; also linked to transcription
+H2B,K,5,ac,H2BK5ac,active,EP300; CREBBP; KAT2A,HDAC1/2,,H2B tail acetylation associated with active transcription
+H2B,K,5,un,H2BK5un,other,,,,Unmodified lysine; baseline state for H2BK5 acetylation
+H2B,K,12,ac,H2BK12ac,active,EP300; CREBBP; KAT2A,HDAC1/2,,H2B tail acetylation associated with active transcription
+H2B,K,12,un,H2BK12un,other,,,,Unmodified lysine; baseline state for H2BK12 acetylation
+H2B,K,15,ac,H2BK15ac,active,EP300; CREBBP,HDAC1/2,,H2B tail acetylation associated with active transcription
+H2B,K,15,un,H2BK15un,other,,,,Unmodified lysine; baseline state for H2BK15 acetylation
+H2B,K,20,ac,H2BK20ac,active,EP300; CREBBP,HDAC1/2,,H2B tail acetylation associated with active transcription
+H2B,K,20,un,H2BK20un,other,,,,Unmodified lysine; baseline state for H2BK20 acetylation
+H2B,K,120,ub,H2BK120ub,active,RNF20/RNF40 with UBE2A/B,USP22; USP7; USP49,,Transcription elongation; prerequisite for H3K79 methylation by DOT1L
+H2B,K,120,un,H2BK120un,other,,,,Unmodified lysine; baseline state for H2BK120 ubiquitination
+macroH2A,,,,macroH2A,other,,,,Variant histone H2A (macroH2A1/2); macro domain binds ADP-ribose; PTM landscape less characterised than canonical H2A; predominantly repressive chromatin and inactive X
