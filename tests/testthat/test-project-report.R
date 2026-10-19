@@ -66,6 +66,13 @@ test_that("methods_text reflects the settings", {
   expect_match(text, "HistoneMod v")
 })
 
+test_that("figure_legend returns readable text for plot types", {
+  expect_match(figure_legend("pca", list(transform = "clr")), "CLR")
+  expect_match(figure_legend("volcano"), "Volcano")
+  expect_match(figure_legend("occupancy"), "occupancy", ignore.case = TRUE)
+  expect_error(figure_legend("not_a_plot"), "should be one of")
+})
+
 test_that("statistics_table adds stars and sorts by adjusted p-value", {
   results <- data.frame(
     protein = c("H3", "H3", "H4"),

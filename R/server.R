@@ -1798,7 +1798,22 @@ histonemod_server <- function(input, output, session) {
 
       barplot_plan <- build_barplot_plan(df_for_counts)
       barplot_page_count <- barplot_plan$page_count
-      total_pages <- 4 + barplot_page_count
+
+      report_differential <- tryCatch(
+        differential_analysis(
+          df_for_counts,
+          value_col = value_col_reactive(),
+          transform = transform_mode()
+        ),
+        error = function(e) NULL
+      )
+      report_stats <- if (!is.null(report_differential)) {
+        tryCatch(statistics_table(report_differential), error = function(e) NULL)
+      } else {
+        NULL
+      }
+
+      total_pages <- 6 + barplot_page_count
       current_page <- 0L
 
       page_width_in <- pdf_cfg$page_width_in
@@ -2038,6 +2053,60 @@ histonemod_server <- function(input, output, session) {
         }
       }
 
+      methods_page <- function() {
+        text <- tryCatch(
+          methods_text(current_settings()),
+          error = function(e) "Methods text is not available for this analysis."
+        )
+        lines <- strwrap(paste(text, collapse = " "), width = 110)
+        with_full_content_viewport({
+          grid::grid.text(
+            paste(lines, collapse = "\n"),
+            x = 0.02,
+            y = 0.98,
+            just = c("left", "top"),
+            gp = grid::gpar(fontsize = 12, col = "#0f172a", lineheight = 1.35)
+          )
+        })
+      }
+
+      statistics_page <- function() {
+        stats <- report_stats
+        if (is.null(stats) || nrow(stats) == 0) {
+          with_full_content_viewport({
+            grid::grid.text(
+              "No differential results are available for this dataset.",
+              x = 0.02, y = 0.98, just = c("left", "top"),
+              gp = grid::gpar(fontsize = 12, col = "#0f172a")
+            )
+          })
+          return(invisible(NULL))
+        }
+
+        columns <- intersect(
+          c("protein", "feature", "group1", "group2", "n1", "n2",
+            "effect", "p_adj", "significance"),
+          names(stats)
+        )
+        table <- utils::head(stats[, columns, drop = FALSE], 24)
+        format_value <- function(x) {
+          if (is.numeric(x)) formatC(x, digits = 3, format = "g") else as.character(x)
+        }
+        table <- as.data.frame(lapply(table, format_value), stringsAsFactors = FALSE)
+
+        header <- paste(columns, collapse = "  ")
+        separator <- strrep("-", nchar(header))
+        body <- apply(table, 1, function(row) paste(row, collapse = "  "))
+
+        with_full_content_viewport({
+          grid::grid.text(
+            paste(c(header, separator, body), collapse = "\n"),
+            x = 0.02, y = 0.98, just = c("left", "top"),
+            gp = grid::gpar(fontsize = 7.5, fontfamily = "mono", col = "#0f172a", lineheight = 1.15)
+          )
+        })
+      }
+
       pca_page <- function() {
         with_inch_box_in_content(pdf_cfg$pca_width_in, pdf_cfg$pca_height_in, function(scale) {
           print(pca_plot_obj, newpage = FALSE)
@@ -2160,17 +2229,23 @@ histonemod_server <- function(input, output, session) {
 
       tryCatch({
         shiny::withProgress(message = "Generating PDF report...", value = 0, {
-          shiny::incProgress(0.05, detail = "Cover")
+          shiny::incProgress(0.04, detail = "Cover")
           next_page(NULL, cover_page)
 
-          shiny::incProgress(0.10, detail = "Data source")
+          shiny::incProgress(0.08, detail = "Methods")
+          next_page("Methods", methods_page)
+
+          shiny::incProgress(0.08, detail = "Data source")
           next_page("Data Source", data_source_page)
 
-          shiny::incProgress(0.15, detail = "PCA")
+          shiny::incProgress(0.12, detail = "PCA")
           next_page("PCA", pca_page)
 
-          shiny::incProgress(0.15, detail = "Heatmap")
+          shiny::incProgress(0.12, detail = "Heatmap")
           next_page("Heatmap", heatmap_page)
+
+          shiny::incProgress(0.08, detail = "Statistics")
+          next_page("Statistics", statistics_page)
 
           shiny::incProgress(0.05, detail = "Barplots")
           barplot_pages()

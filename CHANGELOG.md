@@ -14,9 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cross-talk analysis**: `compute_crosstalk()` computes combinatorial modification patterns, intensity-weighted pattern frequencies, and pairwise co-occurrence log odds ratios; `plot_crosstalk()` provides pattern-frequency and co-occurrence views.
 - **Histone mark annotation**: a curated `histone_marks` table plus `histone_marks()`, `normalise_histone_protein()`, `annotate_sites()`, `summarise_by_class()` and `plot_mark_classes()` map sites to canonical names, functional classes and writer/eraser/reader annotations.
 - **Dose-response analysis**: `fit_dose_response()` and `plot_dose_response()` fit four-parameter logistic (or log-dose linear) curves and report EC50 values for inhibitor and dose experiments.
+- **Time-course analysis**: `fit_time_course()` and `plot_time_course()` fit exponential decay/approach models and report half-lives.
+- **Batch processing and comparison**: `run_histonemod_batch()` processes several Skyline export pairs and writes project/processed outputs; `compare_experiments()` and `plot_experiment_comparison()` compare treatment effects between two experiments.
 - **Power analysis**: `simulate_histone_data()`, `estimate_power()` and `plot_power_curve()` help plan replicate numbers for histone PTM experiments.
 - **Projects and reproducibility**: `save_project()`, `load_project()` and `export_analysis_bundle()` store inputs, settings and results and write a reproducible analysis bundle.
-- **Report helpers**: `methods_text()` generates a manuscript-ready methods paragraph and `statistics_table()` formats differential results with significance labels.
+- **Report helpers**: `methods_text()`, `figure_legend()` and `statistics_table()` generate manuscript-ready text; the quick PDF report now includes a Methods page and a Statistics page.
 - **New Shiny views**: a `Sites` tab (occupancy and cross-talk), a `Dose-response` tab, a mark-class summary in `Composition`, and project/methods downloads in `Download Data`.
 
 ### 🔧 Changed

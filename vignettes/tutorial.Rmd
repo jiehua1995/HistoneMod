@@ -136,6 +136,51 @@ power <- HistoneMod::estimate_power(n_replicates = c(3, 4, 5, 6))
 HistoneMod::plot_power_curve(power)
 ```
 
+## Time-course analysis
+
+When the sample table contains a numeric `Time` column, exponential decay or
+approach models can be fitted and half-lives reported:
+
+```r
+time_fits <- HistoneMod::fit_time_course(data, time_col = "Time",
+                                         value_col = "Percentage")
+HistoneMod::plot_time_course(data, time_fits, time_col = "Time",
+                             value_col = "Percentage")
+```
+
+## Batch processing and experiment comparison
+
+Several Skyline export pairs can be processed in one call; each pair produces a
+project file and a processed table:
+
+```r
+batch <- HistoneMod::run_histonemod_batch(
+  ms1_files = c("exp1_MS1.csv", "exp2_MS1.csv"),
+  sample_files = c("exp1_samples.csv", "exp2_samples.csv"),
+  output_dir = "batch-results"
+)
+
+comparison <- HistoneMod::compare_experiments(
+  data_wt, data_ko,
+  groups_a = c("control", "treated"),
+  groups_b = c("control", "treated"),
+  label_a = "WT", label_b = "KO"
+)
+HistoneMod::plot_experiment_comparison(comparison)
+```
+
+## Reporting helpers
+
+`methods_text()`, `figure_legend()` and `statistics_table()` generate
+manuscript-ready text, and the quick PDF report includes Methods and Statistics
+pages automatically.
+
+```r
+HistoneMod::methods_text(list(transform = "clr", exclude_un = TRUE))
+HistoneMod::figure_legend("pca", list(transform = "clr"))
+HistoneMod::statistics_table(HistoneMod::differential_analysis(data))
+```
+
 ## Saving a complete project
 
 A project file stores inputs, settings and derived results, and
@@ -218,15 +263,17 @@ also exports a small set of analysis helpers:
   `normalize_values()`, `transform_composition()`, `composition_matrix()`
 - analysis: `differential_analysis()`, `compute_metrics()`, `qc_summary()`,
   `parse_peptide_sites()`, `compute_site_occupancy()`, `compute_crosstalk()`,
-  `fit_dose_response()`, `estimate_power()`
+  `fit_dose_response()`, `fit_time_course()`, `estimate_power()`,
+  `run_histonemod_batch()`, `compare_experiments()`
 - annotation: `histone_marks()`, `annotate_sites()`, `summarise_by_class()`
 - plotting: `plot_pca()`, `plot_heatmap()`, `plot_barplot_single()`,
   `plot_volcano()`, `plot_composition()`, `plot_qc_missingness()`,
   `plot_qc_cv()`, `plot_occupancy()`, `plot_crosstalk()`,
-  `plot_mark_classes()`, `plot_dose_response()`, `plot_power_curve()`
+  `plot_mark_classes()`, `plot_dose_response()`, `plot_time_course()`,
+  `plot_power_curve()`, `plot_experiment_comparison()`
 - projects and reporting: `save_session()`, `load_session()`,
   `save_project()`, `load_project()`, `export_analysis_bundle()`,
-  `methods_text()`, `statistics_table()`
+  `methods_text()`, `statistics_table()`, `figure_legend()`
 
 ## Next steps
 

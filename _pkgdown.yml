@@ -74,9 +74,17 @@ reference:
   contents:
   - fit_dose_response
   - plot_dose_response
+  - fit_time_course
+  - plot_time_course
   - simulate_histone_data
   - estimate_power
   - plot_power_curve
+- title: Batch processing and comparison
+  desc: Process several Skyline exports and compare experiments.
+  contents:
+  - run_histonemod_batch
+  - compare_experiments
+  - plot_experiment_comparison
 - title: Projects and reporting
   desc: Save complete analyses and generate manuscript-ready text.
   contents:
@@ -85,6 +93,7 @@ reference:
   - export_analysis_bundle
   - methods_text
   - statistics_table
+  - figure_legend
 - title: Session and utilities
   contents:
   - save_session

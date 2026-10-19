@@ -77,6 +77,49 @@ methods_text <- function(settings = list()) {
   )
 }
 
+#' Generate a figure legend
+#'
+#' Returns a short figure legend for the main plot types. As with
+#' [methods_text()], review and adapt the wording before publication.
+#'
+#' @param plot_type One of `"pca"`, `"heatmap"`, `"barplot"`, `"volcano"`,
+#'   `"composition"`, `"occupancy"`, `"crosstalk"` or `"dose_response"`.
+#' @param settings Named list of analysis settings (only `transform` is used
+#'   where relevant).
+#'
+#' @return A single character string.
+#' @export
+figure_legend <- function(plot_type = c(
+                            "pca", "heatmap", "barplot", "volcano", "composition",
+                            "occupancy", "crosstalk", "dose_response"
+                          ),
+                          settings = list()) {
+  plot_type <- match.arg(plot_type)
+  if (is.null(settings)) settings <- list()
+  transform <- settings$transform
+  if (is.null(transform) || !nzchar(transform)) transform <- "none"
+
+  switch(
+    plot_type,
+    "pca" = paste0(
+      "Principal component analysis of histone modification states",
+      if (!identical(transform, "none")) paste0(" after ", toupper(transform), " transformation") else "",
+      ". Each point represents one replicate and colours indicate experimental groups."
+    ),
+    "heatmap" = paste0(
+      "Heatmap of histone modification states across replicates. Rows are peptide states, ",
+      "columns are replicates and colours show relative abundance.",
+      if (!identical(transform, "none")) paste0(" Values were ", toupper(transform), " transformed.") else ""
+    ),
+    "barplot" = "Barplot of the mean relative abundance of one histone modification state per group; error bars show the standard error of the mean.",
+    "volcano" = "Volcano plot of group comparisons. The x-axis shows the effect size on the transformed scale and the y-axis the Benjamini-Hochberg adjusted p-value.",
+    "composition" = "Stacked bars showing the composition of histone modification states within each protein and group.",
+    "occupancy" = "Estimated site occupancy per histone modification site and group. Occupancy is the fraction of the peptide backbone carrying the modification.",
+    "crosstalk" = "Combinatorial modification patterns and pairwise co-occurrence of histone marks.",
+    "dose_response" = "Dose-response curves fitted to each peptide state with a four-parameter logistic model; points show observed values."
+  )
+}
+
 #' Tabulate differential results
 #'
 #' Adds a significance label to the output of [differential_analysis()] and

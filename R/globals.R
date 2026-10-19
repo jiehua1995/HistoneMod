@@ -6,5 +6,6 @@ utils::globalVariables(c(
   "Protein.Name", "Replicate.Name", "Total.Area.MS1", "Total.Area.MS1.Sum",
   "ci95", "err", "mean_value", "sd_value", "se", "n", "value", "metric",
   "direction", "p_adj", "effect", "sample", "feature", ".data",
-  "predicted", "dose", "n_replicates", "power"
+  "predicted", "dose", "n_replicates", "power", "time",
+  "effect_a", "effect_b", "occupancy", "site", "pattern"
 ))

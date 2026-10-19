@@ -24,8 +24,9 @@ Starting with version `0.6.2`, HistoneMod is distributed as an installable R pac
 - Performs global group comparisons with Welch t-tests plus BH correction and volcano plots.
 - Parses Skyline Unimod IDs into histone modification sites and estimates site occupancy and combinatorial cross-talk.
 - Annotates sites with a curated histone mark table (canonical names, functional classes, writers/erasers/readers).
-- Fits dose-response curves (EC50) and estimates statistical power for experiment planning.
-- Supports project files, reproducible analysis bundles, session save/load, methods text generation, and quick PDF reporting.
+- Fits dose-response curves (EC50) and time-course profiles, and estimates statistical power for experiment planning.
+- Runs batches of Skyline exports and compares treatment effects between two experiments.
+- Supports project files, reproducible analysis bundles, session save/load, methods text and figure legends, and quick PDF reporting.
 - Exposes reusable preprocessing, analysis and plotting helpers for scripted analyses.
 
 ## Installation
@@ -126,10 +127,13 @@ Most users only need the Shiny interface. For scripted analyses, the following f
 - `histone_marks()`, `normalise_histone_protein()`, `annotate_sites()`,
   `summarise_by_class()`, `plot_mark_classes()`
 - `fit_dose_response()`, `plot_dose_response()`
+- `fit_time_course()`, `plot_time_course()`
 - `simulate_histone_data()`, `estimate_power()`, `plot_power_curve()`
+- `run_histonemod_batch()`, `compare_experiments()`, `plot_experiment_comparison()`
 - `plot_pca()`, `plot_heatmap()`, `plot_barplot_single()`
 - `save_session()`, `load_session()`, `save_project()`, `load_project()`,
-  `export_analysis_bundle()`, `methods_text()`, `statistics_table()`
+  `export_analysis_bundle()`, `methods_text()`, `statistics_table()`,
+  `figure_legend()`
 
 ## Dependency management
 
