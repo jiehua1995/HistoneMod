@@ -611,7 +611,7 @@ histonemod_server <- function(input, output, session) {
       }
     }
 
-    shinyalert("Session loaded", "The saved session was restored.", type = "success")
+    shiny::showNotification("The saved session was restored.", type = "message", duration = 5)
   })
 
   ##### Version Footer (GitHub Release Check) #####
@@ -758,17 +758,13 @@ histonemod_server <- function(input, output, session) {
     )
 
     if(isTRUE(ok)) {
-      shinyalert(
-        "Randomized Demo Data Loaded",
-        HTML(paste0(
-          "<div style='text-align:left;'>",
-          "HistoneMod loaded the bundled demo dataset directly into the app.<br><br>",
-          "This dataset is derived from the structure of real histone modification tables, ",
-          "but sample identifiers were anonymized, numeric values were randomized, and only four representative modification states were retained for demonstration.",
-          "</div>"
-        )),
-        type = "success",
-        html = TRUE
+      shiny::showNotification(
+        paste(
+          "Randomized demo dataset loaded. The data are anonymized and numerically",
+          "randomized examples derived from the structure of real histone modification tables."
+        ),
+        type = "message",
+        duration = 6
       )
     }
   })
@@ -833,18 +829,10 @@ histonemod_server <- function(input, output, session) {
     }
 
     removeModal()
-    shinyalert(
-      "Demo Files Copied",
-      HTML(paste0(
-        "<div style='text-align:left;'>",
-        "The packaged demo files were copied successfully.<br><br>",
-        "<code>MS1_demo.csv</code><br>",
-        "<code>samples_demo.csv</code><br><br>",
-        "Destination:<br><code>", target_dir, "</code>",
-        "</div>"
-      )),
-      type = "success",
-      html = TRUE
+    shiny::showNotification(
+      paste("Demo files copied to:", target_dir),
+      type = "message",
+      duration = 6
     )
   })
   
