@@ -3,7 +3,6 @@
 .RData
 .Ruserdata
 
-.Rbuildignore
 # *.Rproj
 
 *.tar.gz
@@ -26,3 +25,6 @@ vignettes/*.pdf
 /.DS_Store
 Thumbs.db
 inst/doc
+
+# pkgdown output (built and deployed by GitHub Actions)
+/docs/

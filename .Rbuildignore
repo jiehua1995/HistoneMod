@@ -1,0 +1,8 @@
+^\.github$
+^_pkgdown\.yml$
+^docs$
+^renv$
+^renv\.lock$
+^\.Rprofile$
+^CHANGELOG\.md$
+^CITATION\.cff$

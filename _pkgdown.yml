@@ -1,0 +1,34 @@
+url: https://jiehua1995.github.io/HistoneMod/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles]
+    right: [search, changelog, github]
+  components:
+    changelog:
+      text: Changelog
+      href: https://github.com/jiehua1995/HistoneMod/blob/main/CHANGELOG.md
+
+reference:
+- title: Run HistoneMod
+  desc: Launch the packaged Shiny application.
+  contents:
+  - runHistoneMod
+  - histonemod_app
+- title: Preprocess Skyline exports
+  desc: Validate inputs and compute relative peptide abundances.
+  contents:
+  - percentage_calculation
+- title: Visualise results
+  desc: Build publication-ready plots from processed data.
+  contents:
+  - plot_pca
+  - plot_heatmap
+  - plot_barplot_single
+- title: Utilities
+  desc: Check and repair package dependencies.
+  contents:
+  - depends_check
